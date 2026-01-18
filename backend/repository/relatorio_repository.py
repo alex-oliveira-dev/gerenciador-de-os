@@ -6,23 +6,9 @@ from pathlib import Path
 class RelatorioRepository:
     def __init__(self, db_path=None):
         if db_path is None:
-            db_dir = Path(__file__).parent.parent / "database"
-            db_dir.mkdir(parents=True, exist_ok=True)
-            db_path = db_dir / "relatorios.db"
+            # Caminho padrão igual aos outros repositórios
+            db_path = Path(__file__).parent.parent.parent / "sistema.db"
         self.conn = sqlite3.connect(str(db_path), check_same_thread=False)
-        self._criar_tabela()
-
-    def _criar_tabela(self):
-        self.conn.execute(
-            """CREATE TABLE IF NOT EXISTS reports (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nome TEXT,
-                tipo TEXT,
-                criado_em TEXT,
-                dados TEXT
-            )"""
-        )
-        self.conn.commit()
 
     def salvar_relatorio(self, nome, tipo, dados, criado_em):
         self.conn.execute(

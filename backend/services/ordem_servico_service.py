@@ -12,30 +12,20 @@ class OrdemServicoService:
         return self.repo.listar_ordens_servico()
 
     def adicionar_ordem_servico(self, ordem):
-        if not ordem.get("hora"):
-            ordem["hora"] = datetime.datetime.now().strftime("%H:%M:%S")
-
-        q = int(ordem.get("quantidade") or 0)
-        delta = q
-        old_new = self.estoque_repo.ajustar_quantidade_por_nome(
-            ordem.get("produto"), delta
-        )
-        if old_new[0] is None:
-            raise ValueError(
-                f"Produto '{ordem.get('produto')}' não encontrado no estoque"
-            )
-
-        try:
-            new_id = self.repo.adicionar_ordem_servico(ordem)
-            return new_id
-        except Exception:
+        if not ordem.get("data_abertura"):
+            ordem["data_abertura"] = datetime.datetime.now().strftime("%d/%m/%Y")
             try:
-                self.estoque_repo.ajustar_quantidade_por_nome(
-                    ordem.get("produto"), -delta
-                )
+                new_id = self.repo.adicionar_ordem_servico(ordem)
+                return new_id
             except Exception:
-                pass
-            raise
+                try:
+                    self.estoque_repo.ajustar_quantidade_por_nome(
+                        ordem.get("produto"),
+                    )
+                except Exception:
+                    return self.repo.adicionar_ordem_servico(ordem)
+                raise
+        return self.repo.adicionar_ordem_servico(ordem)
 
     def editar_ordem_servico(self, ordem):
         old = self.repo.obter_por_id(ordem.get("id"))

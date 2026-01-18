@@ -67,8 +67,6 @@ class ModalFuncionario:
 
     def fechar(self, e=None):
         self.dialog.open = False
-        if self.dialog in self.page.overlay:
-            self.page.overlay.remove(self.dialog)
         self.limpar_campos()
 
     def salvar(self, e):

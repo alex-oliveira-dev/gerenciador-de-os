@@ -7,15 +7,19 @@ from backend.services.cliente_service import ClienteService
 
 
 class OrcamentoView:
-
-    def __init__(self, page, mostrar_snack_mensagem):
+    def __init__(self, page, mostrar_snack_mensagem, modal_editar_class=None):
         self.page = page
         self.mostrar_snack_mensagem = mostrar_snack_mensagem
         self.orcamento_service = OrcamentoService()
         self.produto_service = EstoqueService()
         self.cliente_service = ClienteService()
-        # indicador de carregamento removido para agilizar interface
-        from interface.ui.modais.modal_editar_orcamento import ModalEditarOrcamento
+        # Permite injetar uma classe customizada para o modal de edição
+        if modal_editar_class is not None:
+            self.ModalEditarOrcamento = modal_editar_class
+        else:
+            from interface.ui.modais.modal_editar_orcamento import ModalEditarOrcamento
+
+            self.ModalEditarOrcamento = ModalEditarOrcamento
 
         self.tabela_orcamento = TabelaOrcamento(
             page,
@@ -126,9 +130,10 @@ class OrcamentoView:
         self.page.update()
 
     def abrir_modal_editar_orcamento(self, orcamento):
-        from interface.ui.modais.modal_editar_orcamento import ModalEditarOrcamento
-
-        modal = ModalEditarOrcamento(self.page, orcamento, self.salvar_edicao_orcamento)
+        # Usa a classe injetada para o modal de edição
+        modal = self.ModalEditarOrcamento(
+            self.page, orcamento, self.salvar_edicao_orcamento
+        )
         modal.abrir()
 
     def salvar_edicao_orcamento(self, orcamento, pdf_path):

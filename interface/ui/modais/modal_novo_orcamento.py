@@ -70,10 +70,12 @@ class ModalNovoOrcamento:
                         self.mensagem_field,
                     ],
                     spacing=10,
+                    scroll="auto",
                 ),
                 bgcolor=ft.Colors.WHITE,
                 border_radius=12,
                 padding=24,
+                
             ),
             actions=[self.btn_cancelar, self.btn_salvar],
         )
@@ -290,6 +292,8 @@ class ModalNovoOrcamento:
         except Exception as err:
             print("Erro ao gerar PDF:", err)
         self.dialog.open = False
+        if self.dialog in self.page.overlay:
+            self.page.overlay.remove(self.dialog)
         # Seleciona a aba de orçamentos (índice 3 ou 4, dependendo da ordem)
         if hasattr(self.page, "tabs") and self.page.tabs:
             for idx, tab in enumerate(self.page.tabs.tabs):

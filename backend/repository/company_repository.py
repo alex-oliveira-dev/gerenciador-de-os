@@ -1,32 +1,14 @@
 import sqlite3
 from pathlib import Path
-
+from backend.database.database import DB_PATH
 
 class CompanyRepository:
-    def __init__(self, db_path=None):
-        if db_path is None:
-            db_dir = Path(__file__).parent.parent / "database"
-            db_dir.mkdir(parents=True, exist_ok=True)
-            db_path = db_dir / "company.db"
-        self.conn = sqlite3.connect(str(db_path), check_same_thread=False)
-        self._criar_tabela()
+    def __init__(self):
+       
+        self.conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
         self._ensure_columns()
 
-    def _criar_tabela(self):
-        self.conn.execute(
-            """CREATE TABLE IF NOT EXISTS company (
-                id INTEGER PRIMARY KEY,
-                nome TEXT,
-                endereco TEXT,
-                cep TEXT,
-                estado TEXT,
-                bairro TEXT,
-                telefone TEXT,
-                cpf_cnpj TEXT,
-                logo_path TEXT
-            )"""
-        )
-        self.conn.commit()
+  
 
     def _ensure_columns(self):
         try:

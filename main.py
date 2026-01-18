@@ -1,3 +1,7 @@
+from interface.ui.views.painel_view import PainelView
+from backend.database.criar_banco_completo import criar_banco_completo
+from interface.ui.tabelas.tabela_carros_manutencao import TabelaCarrosManutencao
+from backend.services.painel_service import PainelService
 import flet as ft
 import os
 import json
@@ -9,6 +13,9 @@ from interface.ui.views.ordem_servico_view import OrdemServicoView  # Renomeado
 from interface.ui.views.cliente_view import ClienteView
 from interface.ui.views.funcionario_view import FuncionarioView
 from interface.ui.views.orcamento_view import OrcamentoView
+from interface.ui.modais.modal_editar_orcamento_separado import (
+    ModalEditarOrcamentoSeparado,
+)
 from interface.ui.views.relatorios_view import RelatoriosView
 from interface.ui.views.config_view import ConfiguracoesView
 from interface.ui.modais.modal_produto import ModalProduto
@@ -16,6 +23,7 @@ from interface.ui.modais.modal_nova_ordem_servico import (
     ModalAdicionarOrdemServico,
 )  # Renomeado
 from interface.ui.tabelas.tabela_ordem_servico import TabelaOrdemServico  # Renomeado
+from interface.ui.modais.modal_editar_ordem_servico import ModalEditarOrdemServico
 
 
 class App:
@@ -49,6 +57,7 @@ class App:
                         dst = os.path.join(interface_logo, f)
                     else:
                         dst = os.path.join(interface_assets, f)
+
                     try:
                         if not os.path.exists(dst):
                             shutil.move(src, dst)
@@ -72,8 +81,57 @@ class App:
         self.ordem_servico = OrdemServicoView(page, None, None, None)  # Renomeado
         self.clientes = ClienteView(page)
         self.funcionarios = FuncionarioView(page)
-        self.orcamentos = OrcamentoView(page, lambda msg: None)
+        # Substitui o modal de edição de orçamento pelo novo modal separado
+        self.orcamentos = OrcamentoView(
+            page, lambda msg: None, modal_editar_class=ModalEditarOrcamentoSeparado
+        )
         self.relatorios = RelatoriosView(page)
+
+        # Painel (dashboard) - tabela de carros em manutenção
+        self.painel_service = PainelService()
+
+        def abrir_os_callback(os):
+            # Implemente a lógica para abrir OS
+            pass
+
+        def situacao_callback(os, novo_status):
+            # Implemente a lógica para atualizar status
+            pass
+
+        def pdf_callback(os):
+            # Implemente a lógica para abrir PDF
+            pass
+
+        def preencher_callback(os):
+            # Implemente a lógica para preencher OS
+            pass
+
+        def editar_os_callback(os):
+            def salvar_edicao(dados):
+                self.ordem_servico.editar_ordem_servico(dados)
+                self.refresh_all()
+
+            modal = ModalEditarOrdemServico(
+                page=self.page,
+                ordem=os,
+                salvar_callback=salvar_edicao,
+                fechar_callback=None,
+            )
+            modal.abrir()
+
+        self.tabela_carros_manutencao = TabelaCarrosManutencao(
+            self.page,
+            abrir_os_callback,
+            situacao_callback,
+            pdf_callback,
+            preencher_callback,
+        )
+        self.tabela_carros_manutencao.set_editar_callback(editar_os_callback)
+        self.painel_view = PainelView(self.page, self.tabela_carros_manutencao)
+        # Atualiza a tabela do painel ao iniciar
+        self.tabela_carros_manutencao.atualizar(
+            self.painel_service.listar_carros_em_manutencao()
+        )
 
         # Funções utilitárias para atualizar todas as tabelas após mudanças
         def refresh_all():
@@ -149,10 +207,10 @@ class App:
         )
         self.modal_nova_ordem_servico = ModalAdicionarOrdemServico(
             page,
-            self.ordem_servico.editar_ordem_servico,
-            _add_ordem_servico,
-            None,
-            _popular_ordem_servico,
+            _add_ordem_servico,  # adicionar_ordem_servico
+            None,  # editar_ordem_servico
+            None,  # mostrar_snack_mensagem
+            _popular_ordem_servico,  # popular_tabela_ordem_servico
         )
 
         # instancia view de configurações (padronizada)
@@ -166,7 +224,7 @@ class App:
                         expand=True,
                         controls=[
                             ft.Tabs(
-                                length=7,
+                                length=8,
                                 selected_index=0,
                                 expand=True,
                                 content=ft.Column(
@@ -175,12 +233,16 @@ class App:
                                         ft.TabBar(
                                             tabs=[
                                                 ft.Tab(
+                                                    label="PAINEL",
+                                                    icon=ft.Icons.DASHBOARD,
+                                                ),
+                                                ft.Tab(
                                                     label="ESTOQUE",
                                                     icon=ft.Icons.INVENTORY,
                                                 ),
                                                 ft.Tab(
                                                     label="O.S.",
-                                                    icon=ft.Icons.DESCRIPTION,  # Ícone alterado
+                                                    icon=ft.Icons.DESCRIPTION,
                                                 ),
                                                 ft.Tab(
                                                     label="CLIENTES",
@@ -210,6 +272,7 @@ class App:
                                         ft.TabBarView(
                                             expand=True,
                                             controls=[
+                                                self.painel_view.layout,
                                                 # ESTOQUE
                                                 ft.Container(
                                                     padding=20,
@@ -294,6 +357,8 @@ class App:
 
 
 def main(page: ft.Page):
+    # Garante que o banco de dados está criado/atualizado ao abrir o app
+    criar_banco_completo()
     App(page)
 
 

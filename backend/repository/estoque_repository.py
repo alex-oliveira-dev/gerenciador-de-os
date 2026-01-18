@@ -1,33 +1,18 @@
 import sqlite3
-
-
+from backend.database.database import DB_PATH
 import os
 from pathlib import Path
 
 
 class EstoqueRepository:
-    def __init__(self, db_path=None):
-        if db_path is None:
-            db_dir = Path(__file__).parent.parent / "database"
-            db_dir.mkdir(parents=True, exist_ok=True)
-            db_path = db_dir / "estoque.db"
-        self.conn = sqlite3.connect(str(db_path), check_same_thread=False)
-        self._criar_tabela()
+    """
+    Todas as operações usam o banco 'sistema.db' localizado na raiz do projeto.
+    As tabelas de estoque estão dentro deste banco.
+    """
 
-    def _criar_tabela(self):
-        self.conn.execute(
-            """CREATE TABLE IF NOT EXISTS estoque (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT,
-            codigo TEXT,
-            quantidade INTEGER,
-            marca TEXT,
-            fornecedores TEXT,
-            preco_custo REAL DEFAULT 0.0,
-            preco_venda REAL DEFAULT 0.0
-        )"""
-        )
-        self.conn.commit()
+    def __init__(self):
+
+        self.conn = sqlite3.connect(DB_PATH, check_same_thread=False)
 
     def listar_produtos(self):
         cursor = self.conn.execute("SELECT * FROM estoque")

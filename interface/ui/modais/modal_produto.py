@@ -119,12 +119,12 @@ class ModalProduto:
 
     def fechar(self, e=None):
         self.dialog.open = False
-        if self.dialog in self.page.overlay:
-            self.page.overlay.remove(self.dialog)
+        self.page.update()
+        # if self.dialog in self.page.overlay:
+        #     self.page.overlay.remove(self.dialog)
         self.limpar_campos()
         self.carregar_produtos()
         print("Fechou modal produto")
-        self.page.update()
 
     def salvar(self, e):
         # salvar sem overlay de loading

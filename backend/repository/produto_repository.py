@@ -2,26 +2,6 @@ from backend.database.database import Database
 
 db = Database()
 
-
-def criar_tabela():
-    criar_tabela_produtos(),
-
-
-def criar_tabela_produtos():
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS produtos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT,
-            codigo TEXT,
-            quantidade INTEGER,
-            marca TEXT,
-            fornecedores TEXT
-        )
-        """
-    )
-
-
 def inserir(produto: dict):
     db.execute(
         """

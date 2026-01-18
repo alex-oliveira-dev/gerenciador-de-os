@@ -118,118 +118,133 @@ class TabelaOrdemServico:
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
+                        
                     ),
                     ft.Text(
-                        "Data Abertura",
+                        "DATA ABERT.",
                         expand=1,
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
+                        
                     ),
                     ft.Text(
-                        "Cliente",
+                        "CLIENTE",
                         expand=1,
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
+                        
                     ),
                     ft.Text(
-                        "Equipamento",
+                        "VEÍCULO",
                         expand=1,
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
+                        
                     ),
+                    # ft.Text(
+                    #     "DEFEITO",
+                    #     expand=1,
+                    #     weight=ft.FontWeight.BOLD,
+                    #     text_align=ft.TextAlign.CENTER,
+                    #     color=ft.Colors.BLACK,
+                        
+                    # ),
                     ft.Text(
-                        "Defeito",
+                        "STATUS",
                         expand=1,
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
+                        
                     ),
+                    # ft.Text(
+                    #     "TECNICO",
+                    #     expand=1,
+                    #     weight=ft.FontWeight.BOLD,
+                    #     text_align=ft.TextAlign.CENTER,
+                    #     color=ft.Colors.BLACK,
+                        
+                    # ),
+                    # ft.Text(
+                    #     "SERVIÇO",
+                    #     expand=1,
+                    #     weight=ft.FontWeight.BOLD,
+                    #     text_align=ft.TextAlign.CENTER,
+                    #     color=ft.Colors.BLACK,
+                        
+                    # ),
+                    # ft.Text(
+                    #     "SERV. EXECULTADOS",
+                    #     expand=1,
+                    #     weight=ft.FontWeight.BOLD,
+                    #     text_align=ft.TextAlign.CENTER,
+                    #     color=ft.Colors.BLACK,
+                        
+                    # ),
                     ft.Text(
-                        "Status",
+                        "VALOR SERVIÇO",
                         expand=1,
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
+                        
                     ),
+                    # ft.Text(
+                    #     "Peças",
+                    #     expand=1,
+                    #     weight=ft.FontWeight.BOLD,
+                    #     text_align=ft.TextAlign.CENTER,
+                    #     color=ft.Colors.BLACK,
+                    # ),
+                    # ft.Text(
+                    #     "Valor Peças",
+                    #     expand=1,
+                    #     weight=ft.FontWeight.BOLD,
+                    #     text_align=ft.TextAlign.CENTER,
+                    #     color=ft.Colors.BLACK,
+                        
+                    # ),
+                    # ft.Text(
+                    #     "Valor Total",
+                    #     expand=1,
+                    #     weight=ft.FontWeight.BOLD,
+                    #     text_align=ft.TextAlign.CENTER,
+                    #     color=ft.Colors.BLACK,
+                    # ),
+                    # ft.Text(
+                    #     "DATA FECHAM.",
+                    #     expand=1,
+                    #     weight=ft.FontWeight.BOLD,
+                    #     text_align=ft.TextAlign.CENTER,
+                    #     color=ft.Colors.BLACK,
+                        
+                    # ),
                     ft.Text(
-                        "Técnico",
+                        "PGTO",
                         expand=1,
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
+                        
                     ),
                     ft.Text(
-                        "Serviço",
+                        "SITUAÇÃO",
                         expand=1,
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
+                        
                     ),
                     ft.Text(
-                        "Serviço Executado",
+                        "AÇÕES",
                         expand=1,
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
-                    ),
-                    ft.Text(
-                        "Valor Serviço",
-                        expand=1,
-                        weight=ft.FontWeight.BOLD,
-                        text_align=ft.TextAlign.CENTER,
-                        color=ft.Colors.BLACK,
-                    ),
-                    ft.Text(
-                        "Peças",
-                        expand=1,
-                        weight=ft.FontWeight.BOLD,
-                        text_align=ft.TextAlign.CENTER,
-                        color=ft.Colors.BLACK,
-                    ),
-                    ft.Text(
-                        "Valor Peças",
-                        expand=1,
-                        weight=ft.FontWeight.BOLD,
-                        text_align=ft.TextAlign.CENTER,
-                        color=ft.Colors.BLACK,
-                    ),
-                    ft.Text(
-                        "Valor Total",
-                        expand=1,
-                        weight=ft.FontWeight.BOLD,
-                        text_align=ft.TextAlign.CENTER,
-                        color=ft.Colors.BLACK,
-                    ),
-                    ft.Text(
-                        "Data Fechamento",
-                        expand=1,
-                        weight=ft.FontWeight.BOLD,
-                        text_align=ft.TextAlign.CENTER,
-                        color=ft.Colors.BLACK,
-                    ),
-                    ft.Text(
-                        "Pagamento",
-                        expand=1,
-                        weight=ft.FontWeight.BOLD,
-                        text_align=ft.TextAlign.CENTER,
-                        color=ft.Colors.BLACK,
-                    ),
-                    ft.Text(
-                        "Situação",
-                        expand=1,
-                        weight=ft.FontWeight.BOLD,
-                        text_align=ft.TextAlign.CENTER,
-                        color=ft.Colors.BLACK,
-                    ),
-                    ft.Text(
-                        "Ações",
-                        expand=1,
-                        weight=ft.FontWeight.BOLD,
-                        text_align=ft.TextAlign.CENTER,
-                        color=ft.Colors.BLACK,
+                        
                     ),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
@@ -409,5 +424,4 @@ class TabelaOrdemServico:
         self.mostrar_snack_mensagem(f"PDF da O.S. {ordem.get('id', '')} gerado!")
 
     def carregar_ordens_servico(self):
-        # Aqui você implementa a lógica para carregar as ordens de serviço
-        pass
+        return ordem_servico_service.listar_ordens_servico()

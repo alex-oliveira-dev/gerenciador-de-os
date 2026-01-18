@@ -1,42 +1,12 @@
 import sqlite3
 from pathlib import Path
-
+from backend.database.database import DB_PATH
 
 class OrcamentoRepository:
-    def __init__(self, db_path=None):
-        if db_path is None:
-            db_dir = Path(__file__).parent.parent / "database"
-            db_dir.mkdir(parents=True, exist_ok=True)
-            db_path = db_dir / "orcamentos.db"
-        self.conn = sqlite3.connect(str(db_path), check_same_thread=False)
-        self._criar_tabela()
-
-    def _criar_tabela(self):
-        # cria tabela se não existir (versão com mensagem_adicional)
-        self.conn.execute(
-            """CREATE TABLE IF NOT EXISTS orcamentos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cliente TEXT,
-                data TEXT,
-                itens TEXT, -- JSON string com os itens
-                total_sem_desconto REAL,
-                total_com_desconto REAL,
-                desconto REAL,
-                mensagem_adicional TEXT
-            )"""
-        )
-        self.conn.commit()
-        # se usuário estiver migrando de versão antiga, adicione a coluna se ausente
-        try:
-            cursor = self.conn.execute("PRAGMA table_info(orcamentos)")
-            cols = [row[1] for row in cursor.fetchall()]
-            if "mensagem_adicional" not in cols:
-                self.conn.execute(
-                    "ALTER TABLE orcamentos ADD COLUMN mensagem_adicional TEXT"
-                )
-                self.conn.commit()
-        except Exception:
-            pass
+    def __init__(self):
+       
+        self.conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+      
 
     def listar_orcamentos(self):
         cursor = self.conn.execute("SELECT * FROM orcamentos")

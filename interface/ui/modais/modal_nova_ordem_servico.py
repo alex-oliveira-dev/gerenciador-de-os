@@ -3,7 +3,7 @@ import datetime
 from backend.services.funcionario_service import FuncionarioService
 from backend.services.estoque_service import EstoqueService
 from backend.repository.cliente_repository import ClienteRepository
-from backend.repository.produto_repository import listar as listar_produtos
+from backend.services.estoque_service import EstoqueService
 from backend.repository.funcionario_repository import FuncionarioRepository
 
 
@@ -11,8 +11,8 @@ class ModalAdicionarOrdemServico:
     def __init__(
         self,
         page: ft.Page,
-        editar_ordem_servico,
         adicionar_ordem_servico,
+        editar_ordem_servico,
         mostrar_snack_mensagem,
         popular_tabela_ordem_servico,
     ):
@@ -24,11 +24,25 @@ class ModalAdicionarOrdemServico:
         # Carregar opções do banco
 
         clientes = ClienteRepository().listar_clientes()
-        produtos = listar_produtos()
+        itens_estoque = EstoqueService().listar_produtos()
         funcionarios = FuncionarioRepository().listar_funcionarios()
         formas_pagamento = ["Dinheiro", "Cartão", "Pix", "Boleto"]
 
-        self.data_abertura = ft.TextField(label="Data de abertura", width=150)
+        self.estoque = ft.Dropdown(
+            label="Item do Estoque",
+            width=200,
+            options=[ft.dropdown.Option(e["nome"]) for e in itens_estoque],
+        )
+        self.quantidade = ft.TextField(label="Quantidade", width=100)
+        self.preco = ft.TextField(label="Valor", width=100)
+        self.responsavel = ft.TextField(label="Responsável", width=200)
+        self.descricao = ft.TextField(label="Descrição", width=200)
+        self.itens_os = []
+        self.lista_itens = ft.Column([])
+
+        self.data_abertura = ft.TextField(
+            label="Data de abertura", width=150, disabled=True
+        )
         self.cliente = ft.Dropdown(
             label="Cliente",
             width=200,
@@ -36,52 +50,7 @@ class ModalAdicionarOrdemServico:
         )
         self.veiculo = ft.TextField(label="Veículo", width=200)
         self.defeito_relatado = ft.TextField(label="Defeito relatado", width=200)
-        self.status = ft.Dropdown(
-            label="Status da O.S.",
-            width=180,
-            options=[
-                ft.dropdown.Option(s)
-                for s in [
-                    "Aberta",
-                    "Em andamento",
-                    "Aguardando peça",
-                    "Finalizada",
-                    "Cancelada",
-                ]
-            ],
-            value="Aberta",
-        )
-        self.responsavel = ft.Dropdown(
-            label="Responsável / Técnico",
-            width=200,
-            options=[ft.dropdown.Option(f["nome"]) for f in funcionarios],
-        )
-        self.servico = ft.TextField(label="Serviço", width=200)
-        self.servico_executado = ft.TextField(label="Serviço executado", width=200)
-        self.valor_servico = ft.TextField(
-            label="Valor do serviço", width=120, keyboard_type=ft.KeyboardType.NUMBER
-        )
-        self.pecas_utilizadas = ft.TextField(label="Peças utilizadas", width=200)
-        self.valor_pecas = ft.TextField(
-            label="Valor das peças", width=120, keyboard_type=ft.KeyboardType.NUMBER
-        )
-        self.valor_total = ft.TextField(
-            label="Valor total", width=120, keyboard_type=ft.KeyboardType.NUMBER
-        )
-        self.data_fechamento = ft.TextField(label="Data de fechamento", width=150)
-        self.forma_pagamento = ft.Dropdown(
-            label="Forma de pagamento",
-            width=150,
-            options=[ft.dropdown.Option(fp) for fp in formas_pagamento],
-        )
-        self.situacao_pagamento = ft.Dropdown(
-            label="Situação do pagamento",
-            width=150,
-            options=[ft.dropdown.Option(s) for s in ["Pendente", "Pago"]],
-            value="Pendente",
-        )
-        self.itens_os = []
-        self.lista_itens = ft.Column([])
+        # Apenas campos essenciais para nova OS
         self.layout = ft.Container(
             content=ft.Column(
                 [
@@ -94,22 +63,32 @@ class ModalAdicionarOrdemServico:
                     ),
                     ft.Divider(height=2, color=ft.Colors.BLUE_100),
                     ft.Row(
-                        [self.data_abertura, self.data_fechamento, self.status],
-                        spacing=16,
-                    ),
-                    ft.Row([self.cliente, self.responsavel], spacing=16),
-                    ft.Row([self.veiculo, self.defeito_relatado], spacing=16),
-                    ft.Row([self.servico, self.servico_executado], spacing=16),
-                    ft.Row(
                         [
-                            self.valor_servico,
-                            self.pecas_utilizadas,
-                            self.valor_pecas,
-                            self.valor_total,
+                            self.data_abertura,
+                            self.cliente,
+                            self.veiculo,
+                            self.defeito_relatado,
                         ],
                         spacing=16,
                     ),
-                    ft.Row([self.forma_pagamento, self.situacao_pagamento], spacing=16),
+                    ft.Divider(height=2, color=ft.Colors.BLUE_100),
+                    ft.Text("Itens da O.S.", size=16, weight=ft.FontWeight.BOLD),
+                    ft.Row(
+                        [
+                            self.estoque,
+                            self.quantidade,
+                            self.preco,
+                            self.responsavel,
+                            self.descricao,
+                            ft.ElevatedButton(
+                                "Adicionar Item",
+                                icon=ft.Icons.ADD,
+                                on_click=self.adicionar_item,
+                            ),
+                        ],
+                        spacing=8,
+                    ),
+                    self.lista_itens,
                     ft.Row(
                         [
                             ft.ElevatedButton(
@@ -139,18 +118,18 @@ class ModalAdicionarOrdemServico:
 
     def adicionar_item(self, e=None):
         item = {
-            "produto": self.produto.value,
+            "estoque": self.estoque.value,
             "quantidade": self.quantidade.value,
             "preco": self.preco.value,
             "responsavel": self.responsavel.value,
             "descricao": self.descricao.value,
         }
-        if not item["produto"] or not item["quantidade"] or not item["preco"]:
-            self.mostrar_snack("Preencha produto, quantidade e valor.")
+        if not item["estoque"] or not item["quantidade"] or not item["preco"]:
+            self.mostrar_snack("Preencha o item de estoque, quantidade e valor.")
             return
         self.itens_os.append(item)
         self.atualizar_lista_itens()
-        self.produto.value = ""
+        self.estoque.value = ""
         self.quantidade.value = ""
         self.preco.value = ""
         self.responsavel.value = ""
@@ -169,7 +148,7 @@ class ModalAdicionarOrdemServico:
                 ft.Row(
                     [
                         ft.Text(
-                            f"{item['produto']} - Qtd: {item['quantidade']} - Valor: {item['preco']}",
+                            f"{item['estoque']} - Qtd: {item['quantidade']} - Valor: {item['preco']}",
                             width=260,
                         ),
                         ft.IconButton(
@@ -185,17 +164,25 @@ class ModalAdicionarOrdemServico:
     def fechar_modal(self, e=None):
         if hasattr(self, "dialog"):
             self.dialog.open = False
-            if self.dialog in self.page.overlay:
-                self.page.overlay.remove(self.dialog)
-            pass
+            self.page.update()
 
     def abrir_modal_adicionar_ordem_servico(self):
+        # Sempre limpar _id_edicao ao abrir para garantir que é adição
+        self._id_edicao = None
+        # Buscar dados atualizados do banco
+        from backend.repository.cliente_repository import ClienteRepository
+        from backend.services.estoque_service import EstoqueService
+
+        clientes = ClienteRepository().listar_clientes()
+        itens_estoque = EstoqueService().listar_produtos()
+        self.cliente.options = [ft.dropdown.Option(c["nome"]) for c in clientes]
+        self.estoque.options = [ft.dropdown.Option(e["nome"]) for e in itens_estoque]
+        self.estoque.update()
         # Preencher data automaticamente ao abrir
         self.data_abertura.value = datetime.datetime.now().strftime("%d/%m/%Y")
         self.page.update()
         if not hasattr(self, "dialog"):
             self.dialog = ft.AlertDialog(
-                title=ft.Text("Nova Ordem de Serviço"),
                 content=self.layout,
                 modal=True,
             )
@@ -205,8 +192,24 @@ class ModalAdicionarOrdemServico:
         self.page.update()
 
     def abrir_modal_editar_ordem_servico(self, ordem):
-        # Implementar lógica para editar
-        pass
+        print("chamou editar os")
+        # Preencher campos com dados da OS
+        self.data_abertura.value = ordem.get("data_abertura", "")
+        self.cliente.value = ordem.get("cliente", "")
+        self.veiculo.value = ordem.get("veiculo", "")
+        self.defeito_relatado.value = ordem.get("defeito_relatado", "")
+        self.data_abertura.disabled = True
+        self._id_edicao = ordem.get("id")  # Salva o id para edição
+        self.page.update()
+        if not hasattr(self, "dialog"):
+            self.dialog = ft.AlertDialog(
+                content=self.layout,
+                modal=True,
+            )
+        if self.dialog not in self.page.overlay:
+            self.page.overlay.append(self.dialog)
+        self.dialog.open = True
+        self.page.update()
 
     def salvar_ordem_servico(self, e):
         dados_os = {
@@ -214,19 +217,10 @@ class ModalAdicionarOrdemServico:
             "cliente": self.cliente.value,
             "veiculo": self.veiculo.value,
             "defeito_relatado": self.defeito_relatado.value,
-            "status": self.status.value,
-            "responsavel": self.responsavel.value,
-            "servico": self.servico.value,
-            "servico_executado": self.servico_executado.value,
-            "valor_servico": float(self.valor_servico.value or 0),
-            "pecas_utilizadas": self.pecas_utilizadas.value,
-            "valor_pecas": float(self.valor_pecas.value or 0),
-            "valor_total": float(self.valor_total.value or 0),
-            "data_fechamento": self.data_fechamento.value,
-            "forma_pagamento": self.forma_pagamento.value,
-            "situacao_pagamento": self.situacao_pagamento.value,
         }
         self.adicionar_ordem_servico(dados_os)
         if self.popular_tabela_ordem_servico:
             self.popular_tabela_ordem_servico()
         self.fechar_modal()
+
+        self.page.update()
