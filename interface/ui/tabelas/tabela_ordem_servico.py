@@ -1,5 +1,8 @@
 import flet as ft
-from backend.services.ordem_servico_service import ordem_servico_service
+from backend.services.ordem_servico_service import (
+    OrdemServicoService,
+    ordem_servico_service,
+)
 from interface.ui.modais.modal_nova_ordem_servico import ModalAdicionarOrdemServico
 
 
@@ -14,7 +17,7 @@ class TabelaOrdemServico:
         mostrar_snack_mensagem,
     ):
         self.page = page
-        self.carregar_ordens_servico = carregar_ordens_servico
+        self.carregar_ordens_servico_callback = carregar_ordens_servico
         self.modal_nova_ordem_servico = ModalAdicionarOrdemServico(
             self.page,
             editar_ordem_servico,
@@ -23,7 +26,10 @@ class TabelaOrdemServico:
             self.popular_tabela_ordem_servico,
         )
         self.on_excluir = excluir_ordem_servico
+        # armazenar callback opcional para mostrar mensagens; pode ser None
         self.mostrar_snack_mensagem = mostrar_snack_mensagem
+
+        # Inicializa componentes da tabela
         self.mensagem_tabela_ordem_vazia = ft.Text(
             "NENHUMA O.S. CADASTRADA!",
             text_align=ft.TextAlign.CENTER,
@@ -81,23 +87,44 @@ class TabelaOrdemServico:
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             expand=True,
             spacing=20,
-            scroll="auto",
+            on_scroll="auto",
         )
+
+    def _mostrar_snack_mensagem(self, mensagem: str):
+        # usa o callback se fornecido e chamável, caso contrário usa page.snack_bar
+        try:
+            if callable(self.mostrar_snack_mensagem):
+                self.mostrar_snack_mensagem(mensagem)
+                return
+        except Exception:
+            pass
+        # fallback para exibir snack bar pela página
+        try:
+            from flet import SnackBar, Text
+
+            self.page.snack_bar = SnackBar(Text(mensagem), open=True)
+            self.page.update()
+        except Exception:
+            # último recurso: print
+            print(mensagem)
+        # fim do fallback
+
+    # continuação da inicialização do objeto (antes estava indentado incorretamente)
 
     def gerar_pdf_ordem_servico(self, e=None):
         from backend.utils.pdf_generator import gerar_pdf_ordem_servico
 
         ordens = (
-            self.carregar_ordens_servico()
+            self.carregar_ordens_servico_callback()
             if callable(self.carregar_ordens_servico)
             else []
         )
         if not ordens:
-            self.mostrar_snack_mensagem("Nenhuma O.S. para gerar PDF.")
+            self._mostrar_snack_mensagem("Nenhuma O.S. para gerar PDF.")
             return
         for ordem in ordens:
             gerar_pdf_ordem_servico(ordem, pasta="interface/assets/os/")
-        self.mostrar_snack_mensagem("PDFs das O.S. gerados em interface/assets/os/")
+        self._mostrar_snack_mensagem("PDFs das O.S. gerados em interface/assets/os/")
 
     def on_editar(self, i):
         self.modal_nova_ordem_servico.abrir_modal_editar_ordem_servico(i)
@@ -114,19 +141,17 @@ class TabelaOrdemServico:
                 [
                     ft.Text(
                         "Nº O.S.",
-                        expand=1,
+                        expand=0,
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
-                        
                     ),
                     ft.Text(
                         "DATA ABERT.",
-                        expand=1,
+                        expand=0,
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
-                        
                     ),
                     ft.Text(
                         "CLIENTE",
@@ -134,7 +159,6 @@ class TabelaOrdemServico:
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
-                        
                     ),
                     ft.Text(
                         "VEÍCULO",
@@ -142,7 +166,6 @@ class TabelaOrdemServico:
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
-                        
                     ),
                     # ft.Text(
                     #     "DEFEITO",
@@ -150,7 +173,6 @@ class TabelaOrdemServico:
                     #     weight=ft.FontWeight.BOLD,
                     #     text_align=ft.TextAlign.CENTER,
                     #     color=ft.Colors.BLACK,
-                        
                     # ),
                     ft.Text(
                         "STATUS",
@@ -158,7 +180,6 @@ class TabelaOrdemServico:
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
-                        
                     ),
                     # ft.Text(
                     #     "TECNICO",
@@ -166,7 +187,6 @@ class TabelaOrdemServico:
                     #     weight=ft.FontWeight.BOLD,
                     #     text_align=ft.TextAlign.CENTER,
                     #     color=ft.Colors.BLACK,
-                        
                     # ),
                     # ft.Text(
                     #     "SERVIÇO",
@@ -174,7 +194,6 @@ class TabelaOrdemServico:
                     #     weight=ft.FontWeight.BOLD,
                     #     text_align=ft.TextAlign.CENTER,
                     #     color=ft.Colors.BLACK,
-                        
                     # ),
                     # ft.Text(
                     #     "SERV. EXECULTADOS",
@@ -182,15 +201,13 @@ class TabelaOrdemServico:
                     #     weight=ft.FontWeight.BOLD,
                     #     text_align=ft.TextAlign.CENTER,
                     #     color=ft.Colors.BLACK,
-                        
                     # ),
                     ft.Text(
                         "VALOR SERVIÇO",
-                        expand=1,
+                        expand=0,
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
-                        
                     ),
                     # ft.Text(
                     #     "Peças",
@@ -205,7 +222,6 @@ class TabelaOrdemServico:
                     #     weight=ft.FontWeight.BOLD,
                     #     text_align=ft.TextAlign.CENTER,
                     #     color=ft.Colors.BLACK,
-                        
                     # ),
                     # ft.Text(
                     #     "Valor Total",
@@ -220,7 +236,6 @@ class TabelaOrdemServico:
                     #     weight=ft.FontWeight.BOLD,
                     #     text_align=ft.TextAlign.CENTER,
                     #     color=ft.Colors.BLACK,
-                        
                     # ),
                     ft.Text(
                         "PGTO",
@@ -228,23 +243,20 @@ class TabelaOrdemServico:
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
-                        
                     ),
-                    ft.Text(
-                        "SITUAÇÃO",
-                        expand=1,
-                        weight=ft.FontWeight.BOLD,
-                        text_align=ft.TextAlign.CENTER,
-                        color=ft.Colors.BLACK,
-                        
-                    ),
+                    # ft.Text(
+                    #     "SITUAÇÃO",
+                    #     expand=1,
+                    #     weight=ft.FontWeight.BOLD,
+                    #     text_align=ft.TextAlign.CENTER,
+                    #     color=ft.Colors.BLACK,
+                    # ),
                     ft.Text(
                         "AÇÕES",
                         expand=1,
                         weight=ft.FontWeight.BOLD,
                         text_align=ft.TextAlign.CENTER,
                         color=ft.Colors.BLACK,
-                        
                     ),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
@@ -252,10 +264,12 @@ class TabelaOrdemServico:
         )
 
     def popular_tabela_ordem_servico(self):
-        ordens = []
-        if callable(self.carregar_ordens_servico):
-            ordens = self.carregar_ordens_servico()
         self.lista_itens_ordem_servico.controls.clear()
+        if self.carregar_ordens_servico_callback:
+            ordens = self.carregar_ordens_servico_callback()
+            print(ordens)
+        else:
+            ordens = []
         if not ordens:
             self.lista_itens_ordem_servico.controls.append(
                 self.mensagem_tabela_ordem_vazia
@@ -285,12 +299,12 @@ class TabelaOrdemServico:
                             [
                                 ft.Text(
                                     str(ordem.get("id", "")),
-                                    width=50,
+                                    expand=0,
                                     text_align=ft.TextAlign.CENTER,
                                 ),
                                 ft.Text(
                                     str(ordem.get("data_abertura", "")),
-                                    width=100,
+                                    expand=1,
                                     text_align=ft.TextAlign.CENTER,
                                 ),
                                 ft.Text(
@@ -299,17 +313,17 @@ class TabelaOrdemServico:
                                     text_align=ft.TextAlign.CENTER,
                                 ),
                                 ft.Text(
-                                    str(ordem.get("equipamento", "")),
+                                    str(ordem.get("veiculo", "")),
                                     expand=1,
                                     text_align=ft.TextAlign.CENTER,
                                 ),
-                                ft.Text(
-                                    str(ordem.get("defeito_relatado", "")),
-                                    expand=1,
-                                    text_align=ft.TextAlign.CENTER,
-                                ),
+                                # ft.Text(
+                                #     str(ordem.get("defeito_relatado", "")),
+                                #     expand=1,
+                                #     text_align=ft.TextAlign.CENTER,
+                                # ),
                                 ft.Dropdown(
-                                    width=110,
+                                    expand=1,
                                     value=ordem.get("status", "Aberta"),
                                     options=[
                                         ft.dropdown.Option(s)
@@ -321,62 +335,62 @@ class TabelaOrdemServico:
                                             "Cancelada",
                                         ]
                                     ],
-                                    on_change=atualizar_status,
+                                    on_select=atualizar_status,
                                     dense=True,
                                 ),
-                                ft.Text(
-                                    str(ordem.get("responsavel", "")),
-                                    expand=1,
-                                    text_align=ft.TextAlign.CENTER,
-                                ),
-                                ft.Text(
-                                    str(ordem.get("servico", "")),
-                                    expand=1,
-                                    text_align=ft.TextAlign.CENTER,
-                                ),
-                                ft.Text(
-                                    str(ordem.get("servico_executado", "")),
-                                    expand=1,
-                                    text_align=ft.TextAlign.CENTER,
-                                ),
-                                ft.Text(
-                                    f"R$ {ordem.get('valor_servico', 0.0):.2f}",
-                                    width=90,
-                                    text_align=ft.TextAlign.CENTER,
-                                ),
-                                ft.Text(
-                                    str(ordem.get("pecas_utilizadas", "")),
-                                    expand=1,
-                                    text_align=ft.TextAlign.CENTER,
-                                ),
-                                ft.Text(
-                                    f"R$ {ordem.get('valor_pecas', 0.0):.2f}",
-                                    width=90,
-                                    text_align=ft.TextAlign.CENTER,
-                                ),
+                                # ft.Text(
+                                #     str(ordem.get("responsavel", "")),
+                                #     expand=1,
+                                #     text_align=ft.TextAlign.CENTER,
+                                # ),
+                                # ft.Text(
+                                #     str(ordem.get("servico", "")),
+                                #     expand=1,
+                                #     text_align=ft.TextAlign.CENTER,
+                                # ),
+                                # ft.Text(
+                                #     str(ordem.get("servico_executado", "")),
+                                #     expand=1,
+                                #     text_align=ft.TextAlign.CENTER,
+                                # ),
                                 ft.Text(
                                     f"R$ {ordem.get('valor_total', 0.0):.2f}",
-                                    width=90,
+                                    expand=1,
                                     text_align=ft.TextAlign.CENTER,
                                 ),
-                                ft.Text(
-                                    str(ordem.get("data_fechamento", "")),
-                                    width=100,
-                                    text_align=ft.TextAlign.CENTER,
-                                ),
-                                ft.Text(
-                                    str(ordem.get("forma_pagamento", "")),
-                                    width=90,
-                                    text_align=ft.TextAlign.CENTER,
-                                ),
+                                # ft.Text(
+                                #     str(ordem.get("pecas_utilizadas", "")),
+                                #     expand=1,
+                                #     text_align=ft.TextAlign.CENTER,
+                                # ),
+                                # ft.Text(
+                                #     f"R$ {ordem.get('valor_pecas', 0.0):.2f}",
+                                #     expand=1,
+                                #     text_align=ft.TextAlign.CENTER,
+                                # ),
+                                # ft.Text(
+                                #     f"R$ {ordem.get('valor_total', 0.0):.2f}",
+                                #     expand=1,
+                                #     text_align=ft.TextAlign.CENTER,
+                                # ),
+                                # ft.Text(
+                                #     str(ordem.get("data_fechamento", "")),
+                                #     expand=1,
+                                #     text_align=ft.TextAlign.CENTER,
+                                # ),
+                                # ft.Text(
+                                #     str(ordem.get("forma_pagamento", "")),
+                                #     expand=1,
+                                #     text_align=ft.TextAlign.CENTER,
+                                # ),
                                 ft.Dropdown(
-                                    width=90,
+                                    expand=0,
                                     value=ordem.get("situacao_pagamento", "Pendente"),
                                     options=[
                                         ft.dropdown.Option(s)
                                         for s in ["Pendente", "Pago"]
                                     ],
-                                    on_change=atualizar_pagamento,
+                                    on_select=atualizar_pagamento,
                                     dense=True,
                                 ),
                                 ft.Row(
@@ -408,7 +422,7 @@ class TabelaOrdemServico:
                                     ],
                                     spacing=4,
                                     alignment=ft.MainAxisAlignment.CENTER,
-                                    width=180,
+                                    expand=1,
                                 ),
                             ],
                             alignment=ft.MainAxisAlignment.CENTER,
@@ -421,7 +435,7 @@ class TabelaOrdemServico:
         from backend.utils.pdf_generator import gerar_pdf_ordem_servico
 
         gerar_pdf_ordem_servico(ordem, pasta="interface/assets/os/")
-        self.mostrar_snack_mensagem(f"PDF da O.S. {ordem.get('id', '')} gerado!")
+        self._mostrar_snack_mensagem(f"PDF da O.S. {ordem.get('id', '')} gerado!")
 
     def carregar_ordens_servico(self):
         return ordem_servico_service.listar_ordens_servico()

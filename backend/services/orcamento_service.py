@@ -34,9 +34,3 @@ class OrcamentoService:
             pass
         # remove do banco
         self.repo.deletar_orcamento(orcamento_id)
-
-    def editar_orcamento(self, orcamento):
-        orcamento = orcamento.copy()
-        orcamento["itens"] = json.dumps(orcamento["itens"])
-        orcamento.setdefault("mensagem_adicional", "")
-        self.repo.editar_orcamento(orcamento)

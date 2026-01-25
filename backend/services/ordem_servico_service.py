@@ -1,9 +1,12 @@
-from backend.repository.lancamento_repository import OrdemServicoRepository
+from backend.repository.os_repository import OrdemServicoRepository
 from backend.repository.estoque_repository import EstoqueRepository
 import datetime
 
 
 class OrdemServicoService:
+    # def listar_ordens_servico_abertas(self):
+    #     return self.repo.listar_ordens_servico_abertas()
+
     def __init__(self):
         self.repo = OrdemServicoRepository()
         self.estoque_repo = EstoqueRepository()
@@ -32,22 +35,20 @@ class OrdemServicoService:
         if not old:
             raise ValueError("Ordem de Serviço não encontrada")
 
-        old_q = int(old.get("quantidade") or 0)
-        try:
-            self.estoque_repo.ajustar_quantidade_por_nome(old.get("produto"), -old_q)
-        except Exception:
-            pass
-
-        new_q = int(ordem.get("quantidade") or 0)
-        adj = self.estoque_repo.ajustar_quantidade_por_nome(ordem.get("produto"), new_q)
-        if adj[0] is None:
-            try:
-                self.estoque_repo.ajustar_quantidade_por_nome(old.get("produto"), old_q)
-            except Exception:
-                pass
-            raise ValueError(
-                f"Produto '{ordem.get('produto')}' não encontrado no estoque"
-            )
+        # Ajustar estoque para todos os itens_os
+        itens_os = ordem.get("itens_os", [])
+        if itens_os:
+            for item in itens_os:
+                nome_produto = item.get("produto")
+                qtd = int(item.get("quantidade") or 0)
+                if nome_produto:
+                    adj = self.estoque_repo.ajustar_quantidade_por_nome(
+                        nome_produto, -qtd
+                    )
+                    if adj[0] is None:
+                        raise ValueError(
+                            f"Produto '{nome_produto}' não encontrado no estoque"
+                        )
 
         self.repo.editar_ordem_servico(ordem)
 
@@ -65,4 +66,5 @@ class OrdemServicoService:
         self.repo.deletar_ordem_servico(ordem.get("id"))
 
 
+# Instância global do serviço de ordem de serviço
 ordem_servico_service = OrdemServicoService()

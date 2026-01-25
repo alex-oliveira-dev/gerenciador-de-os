@@ -7,28 +7,30 @@ import os
 import json
 import shutil
 from backend.services import estoque_service
-from backend.services import ordem_servico_service  # Renomeado
+from backend.services import ordem_servico_service
 from interface.ui.views.estoque_view import EstoqueView
-from interface.ui.views.ordem_servico_view import OrdemServicoView  # Renomeado
+from interface.ui.views.ordem_servico_view import OrdemServicoView
 from interface.ui.views.cliente_view import ClienteView
 from interface.ui.views.funcionario_view import FuncionarioView
 from interface.ui.views.orcamento_view import OrcamentoView
-from interface.ui.modais.modal_editar_orcamento_separado import (
-    ModalEditarOrcamentoSeparado,
-)
 from interface.ui.views.relatorios_view import RelatoriosView
 from interface.ui.views.config_view import ConfiguracoesView
 from interface.ui.modais.modal_produto import ModalProduto
 from interface.ui.modais.modal_nova_ordem_servico import (
     ModalAdicionarOrdemServico,
-)  # Renomeado
+)
 from interface.ui.tabelas.tabela_ordem_servico import TabelaOrdemServico  # Renomeado
 from interface.ui.modais.modal_editar_ordem_servico import ModalEditarOrdemServico
+from backend.services.ordem_servico_service import ordem_servico_service
+import threading
 
 
 class App:
+
     def __init__(self, page: ft.Page):
         self.page = page
+        # Permite acesso global à instância App a partir de page
+        setattr(self.page, "app_instance", self)
         page.window_min_width = 980
         page.window_min_height = 1280
         page.resizable = False
@@ -76,35 +78,34 @@ class App:
             print("Erro ao migrar assets:", e)
         print(type(self.page))
 
+        def iniciar_atualizacao_periodica(self):
+            def atualizar_tabelas():
+                if hasattr(self, "refresh_all") and callable(self.refresh_all):
+                    self.refresh_all()
+                # agenda próxima execução
+                threading.Timer(10, atualizar_tabelas).start()  # 10s = 0.17min
+
+            threading.Timer(10, atualizar_tabelas).start()
+
+        self.iniciar_atualizacao_periodica = iniciar_atualizacao_periodica.__get__(self)
+        # Inicia atualização periódica das tabelas
+        self.iniciar_atualizacao_periodica()
+
         # Inicializações dos objetos antes do layout
         self.estoque = EstoqueView(page)
-        self.ordem_servico = OrdemServicoView(page, None, None, None)  # Renomeado
+        self.ordem_servico = OrdemServicoView(
+            page,
+            None,  # mostrar_snack_mensagem
+            None,  # popular_tabela_ordem_servico
+            ordem_servico_service.listar_ordens_servico,  # carregar_ordens_servico
+        )
         self.clientes = ClienteView(page)
         self.funcionarios = FuncionarioView(page)
-        # Substitui o modal de edição de orçamento pelo novo modal separado
-        self.orcamentos = OrcamentoView(
-            page, lambda msg: None, modal_editar_class=ModalEditarOrcamentoSeparado
-        )
+        self.orcamentos = OrcamentoView(page, lambda msg: None)
         self.relatorios = RelatoriosView(page)
 
         # Painel (dashboard) - tabela de carros em manutenção
         self.painel_service = PainelService()
-
-        def abrir_os_callback(os):
-            # Implemente a lógica para abrir OS
-            pass
-
-        def situacao_callback(os, novo_status):
-            # Implemente a lógica para atualizar status
-            pass
-
-        def pdf_callback(os):
-            # Implemente a lógica para abrir PDF
-            pass
-
-        def preencher_callback(os):
-            # Implemente a lógica para preencher OS
-            pass
 
         def editar_os_callback(os):
             def salvar_edicao(dados):
@@ -119,14 +120,38 @@ class App:
             )
             modal.abrir()
 
+        def finalizar_os_callback(os):
+            def atualizar_tabela_carros():
+                if hasattr(self, "tabela_carros_manutencao") and hasattr(
+                    self, "painel_service"
+                ):
+                    self.tabela_carros_manutencao.atualizar(
+                        self.painel_service.listar_carros_em_manutencao()
+                    )
+
+            def salvar_finalizacao(dados):
+                # Atualiza o status para 'Finalizada' e salva no banco
+                dados["status"] = "Finalizada"
+                self.ordem_servico.editar_ordem_servico(dados)
+                self.refresh_all()
+                atualizar_tabela_carros()
+
+            def fechar_modal_callback():
+                atualizar_tabela_carros()
+
+            modal = ModalEditarOrdemServico(
+                page=self.page,
+                ordem=os,
+                salvar_callback=salvar_finalizacao,
+                fechar_callback=fechar_modal_callback,
+                titulo="Finalizar O.S",
+            )
+            modal.abrir()
+
         self.tabela_carros_manutencao = TabelaCarrosManutencao(
             self.page,
-            abrir_os_callback,
-            situacao_callback,
-            pdf_callback,
-            preencher_callback,
+            finalizar_callback=finalizar_os_callback,
         )
-        self.tabela_carros_manutencao.set_editar_callback(editar_os_callback)
         self.painel_view = PainelView(self.page, self.tabela_carros_manutencao)
         # Atualiza a tabela do painel ao iniciar
         self.tabela_carros_manutencao.atualizar(
@@ -199,10 +224,10 @@ class App:
 
         self.tabela_ordem_servico = TabelaOrdemServico(
             page,
-            _add_ordem_servico,
+            lambda: self.modal_nova_ordem_servico.abrir_modal_adicionar_ordem_servico(),
             _excluir_ordem_servico,
             _editar_ordem_servico,
-            _popular_ordem_servico,
+            ordem_servico_service.listar_ordens_servico,
             None,
         )
         self.modal_nova_ordem_servico = ModalAdicionarOrdemServico(

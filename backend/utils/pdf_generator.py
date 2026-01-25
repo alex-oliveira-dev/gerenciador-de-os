@@ -5,15 +5,90 @@ from fpdf import FPDF
 def gerar_pdf_ordem_servico(ordem, pasta="interface/assets/os/"):
     if not os.path.exists(pasta):
         os.makedirs(pasta)
+
+    # Gera PDF simples em arquivo temporário
+    from tempfile import mkstemp
+
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
     pdf.cell(200, 10, txt="Ordem de Serviço", ln=True, align="C")
+    pdf.ln(4)
+    # escreve campos principais
     for k, v in ordem.items():
-        pdf.cell(200, 10, txt=f"{k}: {v}", ln=True)
+        try:
+            pdf.multi_cell(0, 6, txt=f"{k}: {v}")
+        except Exception:
+            pdf.cell(0, 6, txt=f"{k}: {v}", ln=True)
+
     nome_arquivo = f"os_{ordem.get('id','')}.pdf"
     caminho = os.path.join(pasta, nome_arquivo)
-    pdf.output(caminho)
+
+    # salva em temporário para possível mesclagem com template
+    tmp_fd, tmp_path = mkstemp(suffix=".pdf")
+    try:
+        os.close(tmp_fd)
+    except Exception:
+        pass
+    pdf.output(tmp_path)
+
+    # tenta mesclar com template se existir
+    try:
+        base_folder = os.path.abspath(pasta)
+        stemplate = os.path.join(base_folder, "stemplate_os.pdf")
+        # se existir template, mescla: coloca o conteúdo gerado sobre o template
+        if os.path.exists(stemplate):
+            try:
+                from PyPDF2 import PdfReader, PdfWriter
+
+                reader_t = PdfReader(stemplate)
+                reader_tmp = PdfReader(tmp_path)
+                writer = PdfWriter()
+
+                for i, tpage in enumerate(reader_t.pages):
+                    if i < len(reader_tmp.pages):
+                        try:
+                            tmp_page = reader_tmp.pages[i]
+                            try:
+                                tmp_page.merge_page(tpage)
+                            except Exception:
+                                pass
+                            writer.add_page(tmp_page)
+                        except Exception:
+                            writer.add_page(tpage)
+                    else:
+                        writer.add_page(tpage)
+
+                # anexar páginas extras do tmp (se existirem)
+                for j in range(len(reader_t.pages), len(reader_tmp.pages)):
+                    writer.add_page(reader_tmp.pages[j])
+
+                with open(caminho, "wb") as f:
+                    writer.write(f)
+                try:
+                    os.remove(tmp_path)
+                except Exception:
+                    pass
+                return caminho
+            except Exception as e:
+                print("[PDF O.S.] falha ao mesclar com stemplate_os.pdf:", e)
+
+    except Exception:
+        pass
+
+    # fallback: copia o PDF gerado para destino
+    try:
+        from shutil import copyfile
+
+        copyfile(tmp_path, caminho)
+    except Exception as e:
+        print("[PDF O.S.] erro ao salvar PDF:", e)
+    finally:
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
+
     return caminho
 
 

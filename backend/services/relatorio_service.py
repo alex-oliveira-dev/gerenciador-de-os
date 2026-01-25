@@ -1,5 +1,5 @@
 from backend.repository.relatorio_repository import RelatorioRepository
-from backend.repository.lancamento_repository import OrdemServicoRepository
+from backend.repository.os_repository import OrdemServicoRepository
 from backend.repository.estoque_repository import EstoqueRepository
 from backend.repository.orcamento_repository import OrcamentoRepository
 import datetime

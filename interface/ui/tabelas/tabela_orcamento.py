@@ -3,11 +3,9 @@ import json
 
 
 class TabelaOrcamento:
-    def __init__(self, page, editar_orcamento, excluir_orcamento, abrir_modal_editar):
+    def __init__(self, page, excluir_orcamento):
         self.page = page
-        self.editar_orcamento = editar_orcamento
         self.excluir_orcamento = excluir_orcamento
-        self.abrir_modal_editar = abrir_modal_editar
         self.lista_orcamentos = ft.ListView(expand=True, spacing=0, padding=0)
         self.mensagem_vazia = ft.Text(
             "NENHUM ORÇAMENTO CADASTRADO!",
@@ -16,6 +14,7 @@ class TabelaOrcamento:
             size=20,
             weight=ft.FontWeight.BOLD,
         )
+        # Cabeçalho e layout da tabela
         self.layout = ft.Column(
             [
                 ft.Container(
@@ -220,13 +219,6 @@ class TabelaOrcamento:
                     ),
                     ft.Row(
                         [
-                            ft.IconButton(
-                                icon=ft.Icons.EDIT,
-                                icon_color=ft.Colors.BLUE,
-                                on_click=lambda e, o=orcamento: self.abrir_modal_editar(
-                                    o
-                                ),
-                            ),
                             ft.IconButton(
                                 icon=ft.Icons.PICTURE_AS_PDF,
                                 icon_color=ft.Colors.BLUE,

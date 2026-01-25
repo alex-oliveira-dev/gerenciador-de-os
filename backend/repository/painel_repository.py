@@ -8,7 +8,7 @@ def listar_carros_em_manutencao():
         """
         SELECT id, cliente, veiculo, defeito_relatado, status
         FROM ordens_servico
-        WHERE status != 'Finalizada' AND status != 'Cancelada'
+        WHERE status != 'Finalizada' AND status != 'Cancelada' AND status != 'Aguardando peça' AND status != 'Em andamento'
         """
     )
     return [

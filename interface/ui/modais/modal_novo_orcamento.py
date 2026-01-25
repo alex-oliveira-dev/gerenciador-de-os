@@ -75,7 +75,6 @@ class ModalNovoOrcamento:
                 bgcolor=ft.Colors.WHITE,
                 border_radius=12,
                 padding=24,
-                
             ),
             actions=[self.btn_cancelar, self.btn_salvar],
         )
@@ -309,6 +308,7 @@ class ModalNovoOrcamento:
                             c.selected_index = idx
                             break
         self.page.update()
+        self._cancelar_modal_item(e)
 
     def _cancelar_modal(self, e):
         self.dialog.open = False

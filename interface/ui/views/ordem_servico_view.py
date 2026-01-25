@@ -63,6 +63,7 @@ class OrdemServicoView:
 
     def editar_ordem_servico(self, dados_ordem_editados):
         ordem_servico_service.editar_ordem_servico(dados_ordem_editados)
+        self.tabela_ordem_servico.popular_tabela_ordem_servico()
         self.page.update()
 
     def excluir_ordem_servico(self, dados_ordem):

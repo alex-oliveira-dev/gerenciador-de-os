@@ -13,20 +13,7 @@ class OrcamentoView:
         self.orcamento_service = OrcamentoService()
         self.produto_service = EstoqueService()
         self.cliente_service = ClienteService()
-        # Permite injetar uma classe customizada para o modal de edição
-        if modal_editar_class is not None:
-            self.ModalEditarOrcamento = modal_editar_class
-        else:
-            from interface.ui.modais.modal_editar_orcamento import ModalEditarOrcamento
-
-            self.ModalEditarOrcamento = ModalEditarOrcamento
-
-        self.tabela_orcamento = TabelaOrcamento(
-            page,
-            self.editar_orcamento,
-            self.excluir_orcamento,
-            self.abrir_modal_editar_orcamento,
-        )
+        self.tabela_orcamento = TabelaOrcamento(page, self.excluir_orcamento)
         self.btn_novo_orcamento = ft.Button(
             "Novo Orçamento", on_click=self.abrir_modal_novo_orcamento
         )
@@ -129,20 +116,6 @@ class OrcamentoView:
         dialog.open = False
         self.page.update()
 
-    def abrir_modal_editar_orcamento(self, orcamento):
-        # Usa a classe injetada para o modal de edição
-        modal = self.ModalEditarOrcamento(
-            self.page, orcamento, self.salvar_edicao_orcamento
-        )
-        modal.abrir()
-
-    def salvar_edicao_orcamento(self, orcamento, pdf_path):
-        # Atualiza o orçamento no serviço
-        self.orcamento_service.editar_orcamento(orcamento)
-        self.mostrar_snack_mensagem(f"Orçamento atualizado e PDF gerado em: {pdf_path}")
-        self.atualizar_orcamentos()
-        self.page.update()
-
     def atualizar_orcamentos(self):
         orcamentos = self.orcamento_service.listar_orcamentos()
         self.tabela_orcamento.atualizar(orcamentos)
@@ -159,12 +132,6 @@ class OrcamentoView:
         self.atualizar_orcamentos()
         self.page.update()
         return novo_id
-
-    def editar_orcamento(self, orcamento):
-        # Implementar edição se necessário
-        self.mostrar_snack_mensagem(
-            "Função de edição de orçamento ainda não implementada."
-        )
 
     def excluir_orcamento(self, orcamento):
         self.orcamento_service.deletar_orcamento(orcamento["id"])

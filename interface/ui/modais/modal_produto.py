@@ -26,13 +26,6 @@ class ModalProduto:
         self.layout = ft.Container(
             content=ft.Column(
                 [
-                    ft.Text(
-                        "Adicionar NovoProduto",
-                        size=22,
-                        weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.BLUE_700,
-                        text_align=ft.TextAlign.CENTER,
-                    ),
                     ft.Divider(height=2, color=ft.Colors.BLUE_100),
                     ft.Row(
                         [
@@ -41,18 +34,13 @@ class ModalProduto:
                                     self.nome,
                                     self.codigo,
                                     self.quantidade,
+                                    self.marca,
                                 ],
                                 spacing=16,
                                 expand=True,
                             ),
                             ft.Column(
-                                [
-                                    self.marca,
-                                    self.fornecedores,
-                                    ft.Row(
-                                        [self.preco_custo, self.preco_venda], spacing=16
-                                    ),
-                                ],
+                                [self.fornecedores, self.preco_custo, self.preco_venda],
                                 spacing=16,
                                 expand=True,
                             ),
@@ -79,6 +67,7 @@ class ModalProduto:
                         spacing=16,
                     ),
                 ],
+                height=400,
                 spacing=18,
                 alignment=ft.MainAxisAlignment.CENTER,
             ),
@@ -89,7 +78,13 @@ class ModalProduto:
 
         self.dialog = ft.AlertDialog(
             modal=True,
-            title=ft.Text(""),
+            title=ft.Text(
+                "",
+                size=22,
+                weight=ft.FontWeight.BOLD,
+                color=ft.Colors.BLUE_700,
+                text_align=ft.TextAlign.CENTER,
+            ),
             content=self.layout,
         )
 

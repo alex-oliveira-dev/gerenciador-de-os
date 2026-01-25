@@ -5,6 +5,9 @@ from backend.services.estoque_service import EstoqueService
 from backend.repository.cliente_repository import ClienteRepository
 from backend.services.estoque_service import EstoqueService
 from backend.repository.funcionario_repository import FuncionarioRepository
+from backend.repository.cliente_repository import ClienteRepository
+from backend.services.estoque_service import EstoqueService
+import json
 
 
 class ModalAdicionarOrdemServico:
@@ -26,7 +29,7 @@ class ModalAdicionarOrdemServico:
         clientes = ClienteRepository().listar_clientes()
         itens_estoque = EstoqueService().listar_produtos()
         funcionarios = FuncionarioRepository().listar_funcionarios()
-        formas_pagamento = ["Dinheiro", "Cartão", "Pix", "Boleto"]
+        formas_pagamento = ["Dinheiro", "Cartão", "Pix", "Boleto", "Parcelado"]
 
         self.estoque = ft.Dropdown(
             label="Item do Estoque",
@@ -152,7 +155,7 @@ class ModalAdicionarOrdemServico:
                             width=260,
                         ),
                         ft.IconButton(
-                            ft.icons.DELETE,
+                            ft.Icons.DELETE,
                             icon_color=ft.Colors.RED_400,
                             on_click=lambda e, i=idx: self.remover_item(i),
                         ),
@@ -170,14 +173,11 @@ class ModalAdicionarOrdemServico:
         # Sempre limpar _id_edicao ao abrir para garantir que é adição
         self._id_edicao = None
         # Buscar dados atualizados do banco
-        from backend.repository.cliente_repository import ClienteRepository
-        from backend.services.estoque_service import EstoqueService
 
         clientes = ClienteRepository().listar_clientes()
         itens_estoque = EstoqueService().listar_produtos()
         self.cliente.options = [ft.dropdown.Option(c["nome"]) for c in clientes]
         self.estoque.options = [ft.dropdown.Option(e["nome"]) for e in itens_estoque]
-        self.estoque.update()
         # Preencher data automaticamente ao abrir
         self.data_abertura.value = datetime.datetime.now().strftime("%d/%m/%Y")
         self.page.update()
@@ -217,10 +217,30 @@ class ModalAdicionarOrdemServico:
             "cliente": self.cliente.value,
             "veiculo": self.veiculo.value,
             "defeito_relatado": self.defeito_relatado.value,
+            "status": "Aberta",
+            "responsavel": (
+                self.responsavel.value if hasattr(self, "responsavel") else None
+            ),
+            "servico": "",
+            "servico_executado": "",
+            "valor_servico": 0.0,
+            "pecas_utilizadas": json.dumps(self.itens_os),
+            "valor_pecas": sum(
+                float(item.get("preco", 0) or 0) for item in self.itens_os
+            ),
+            "valor_total": sum(
+                float(item.get("preco", 0) or 0) for item in self.itens_os
+            ),
+            "data_fechamento": None,
+            "forma_pagamento": None,
+            "situacao_pagamento": "Pendente",
         }
         self.adicionar_ordem_servico(dados_os)
-        if self.popular_tabela_ordem_servico:
+        if hasattr(self.page, "refresh_all") and callable(
+            getattr(self.page, "refresh_all", None)
+        ):
+            self.page.refresh_all()
+        elif self.popular_tabela_ordem_servico:
             self.popular_tabela_ordem_servico()
         self.fechar_modal()
-
         self.page.update()

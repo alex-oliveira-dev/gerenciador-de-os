@@ -5,6 +5,7 @@ from backend.database.database import DB_PATH
 
 
 class OrdemServicoRepository:
+
     def __init__(self):
 
         self.conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)

@@ -6,18 +6,10 @@ class TabelaCarrosManutencao:
     def __init__(
         self,
         page,
-        abrir_os_callback,
-        situacao_callback,
-        pdf_callback,
-        preencher_callback,
-        editar_callback=None,
+        finalizar_callback=None,
     ):
         self.page = page
-        self.abrir_os_callback = abrir_os_callback
-        self.situacao_callback = situacao_callback
-        self.pdf_callback = pdf_callback
-        self.preencher_callback = preencher_callback
-        self.editar_callback = editar_callback
+        self.finalizar_callback = finalizar_callback
         self.lista_os = ft.ListView(expand=True, spacing=0, padding=0)
         self.mensagem_vazia = ft.Text(
             "NENHUM CARRO EM MANUTENÇÃO!",
@@ -28,6 +20,18 @@ class TabelaCarrosManutencao:
         )
         self.layout = ft.Column(
             [
+                ft.Row(
+                    [
+                        ft.Button(
+                            "Atualizar lista",
+                            icon=ft.Icons.REFRESH,
+                            bgcolor=ft.Colors.BLUE_400,
+                            color=ft.Colors.WHITE,
+                            on_click=self._refresh_manual,
+                        )
+                    ],
+                    alignment=ft.MainAxisAlignment.END,
+                ),
                 ft.Container(
                     border=ft.border.all(2, ft.Colors.BLACK54),
                     border_radius=8,
@@ -45,8 +49,15 @@ class TabelaCarrosManutencao:
             scroll="auto",
         )
 
-    def set_editar_callback(self, callback):
-        self.editar_callback = callback
+    def _refresh_manual(self, e=None):
+        # Atualiza a lista manualmente
+        # Busca a instância App na page para acessar painel_service
+        app = getattr(self.page, "app_instance", None)
+        if app and hasattr(app, "painel_service"):
+            self.atualizar(app.painel_service.listar_carros_em_manutencao())
+
+    def set_finalizar_callback(self, callback):
+        self.finalizar_callback = callback
 
     def _cabecalho(self):
         return ft.Container(
@@ -85,11 +96,8 @@ class TabelaCarrosManutencao:
                         color=ft.Colors.BLACK,
                     ),
                     ft.Text(
-                        "AÇÕES",
+                        "",
                         expand=1,
-                        weight=ft.FontWeight.BOLD,
-                        text_align=ft.TextAlign.CENTER,
-                        color=ft.Colors.BLACK,
                     ),
                 ]
             ),
@@ -124,25 +132,14 @@ class TabelaCarrosManutencao:
                     ),
                     ft.Row(
                         [
-                            ft.IconButton(
-                                ft.Icons.OPEN_IN_NEW,
-                                tooltip="Abrir OS",
-                                on_click=lambda e, o=os: self.abrir_os_callback(o),
-                                icon_color=ft.Colors.BLUE_700,
-                            ),
-                            ft.IconButton(
-                                ft.Icons.PICTURE_AS_PDF,
-                                tooltip="Abrir em PDF",
-                                icon_color=ft.Colors.RED_700,
-                                on_click=lambda e, o=os: self.pdf_callback(o),
-                            ),
-                            ft.IconButton(
-                                ft.Icons.EDIT,
-                                tooltip="Editar",
-                                icon_color=ft.Colors.GREEN_700,
+                            ft.ElevatedButton(
+                                "Finalizar O.S",
+                                icon=ft.Icons.CHECK_CIRCLE,
+                                bgcolor=ft.Colors.GREEN_400,
+                                color=ft.Colors.WHITE,
                                 on_click=lambda e, o=os: (
-                                    self.editar_callback(o)
-                                    if self.editar_callback
+                                    self.finalizar_callback(o)
+                                    if self.finalizar_callback
                                     else None
                                 ),
                             ),
@@ -151,7 +148,7 @@ class TabelaCarrosManutencao:
                     ),
                 ]
             ),
-        )  # Removido: não existe mais self.tabela
+        )
 
     def atualizar(self, lista_os):
         self.lista_os.controls.clear()
