@@ -1,10 +1,35 @@
 from pathlib import Path
 import sqlite3
 
+
 def criar_banco_completo(db_path="sistema.db"):
     db_path = Path(__file__).resolve().parents[2] / db_path
     conn = sqlite3.connect(str(db_path))
     cursor = conn.cursor()
+
+    # Tabela vendas
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS vendas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cliente TEXT NOT NULL,
+            forma_pagamento TEXT,
+            data TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """
+    )
+    # Tabela itens_venda
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS itens_venda (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            venda_id INTEGER,
+            produto TEXT NOT NULL,
+            quantidade INTEGER NOT NULL,
+            FOREIGN KEY(venda_id) REFERENCES vendas(id)
+        )
+    """
+    )
 
     # Tabela ordens_servico
     cursor.execute(
@@ -28,6 +53,16 @@ def criar_banco_completo(db_path="sistema.db"):
         situacao_pagamento TEXT DEFAULT 'Pendente'
     )"""
     )
+
+    # Tabela vendas
+    cursor.execute(
+        """
+    CREATE TABLE IF NOT EXISTS vendas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cliente TEXT NOT NULL,
+        data TEXT DEFAULT CURRENT_TIMESTAMP
+    )"""
+    ),
 
     # Tabela reports
     cursor.execute(

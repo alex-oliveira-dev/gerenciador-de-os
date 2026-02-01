@@ -1,27 +1,17 @@
-from interface.ui.views.painel_view import PainelView
 from backend.database.criar_banco_completo import criar_banco_completo
-from interface.ui.tabelas.tabela_carros_manutencao import TabelaCarrosManutencao
 from backend.services.painel_service import PainelService
 import flet as ft
 import os
-import json
 import shutil
 from backend.services import estoque_service
-from backend.services import ordem_servico_service
 from interface.ui.views.estoque_view import EstoqueView
-from interface.ui.views.ordem_servico_view import OrdemServicoView
 from interface.ui.views.cliente_view import ClienteView
 from interface.ui.views.funcionario_view import FuncionarioView
 from interface.ui.views.orcamento_view import OrcamentoView
 from interface.ui.views.relatorios_view import RelatoriosView
+from interface.ui.views.vendas_view import VendasView
 from interface.ui.views.config_view import ConfiguracoesView
 from interface.ui.modais.modal_produto import ModalProduto
-from interface.ui.modais.modal_nova_ordem_servico import (
-    ModalAdicionarOrdemServico,
-)
-from interface.ui.tabelas.tabela_ordem_servico import TabelaOrdemServico  # Renomeado
-from interface.ui.modais.modal_editar_ordem_servico import ModalEditarOrdemServico
-from backend.services.ordem_servico_service import ordem_servico_service
 import threading
 
 
@@ -93,80 +83,19 @@ class App:
 
         # Inicializações dos objetos antes do layout
         self.estoque = EstoqueView(page)
-        self.ordem_servico = OrdemServicoView(
-            page,
-            None,  # mostrar_snack_mensagem
-            None,  # popular_tabela_ordem_servico
-            ordem_servico_service.listar_ordens_servico,  # carregar_ordens_servico
-        )
         self.clientes = ClienteView(page)
         self.funcionarios = FuncionarioView(page)
         self.orcamentos = OrcamentoView(page, lambda msg: None)
         self.relatorios = RelatoriosView(page)
+        self.vendas = VendasView(page)
 
-        # Painel (dashboard) - tabela de carros em manutenção
+        # Painel (dashboard)
         self.painel_service = PainelService()
-
-        def editar_os_callback(os):
-            def salvar_edicao(dados):
-                self.ordem_servico.editar_ordem_servico(dados)
-                self.refresh_all()
-
-            modal = ModalEditarOrdemServico(
-                page=self.page,
-                ordem=os,
-                salvar_callback=salvar_edicao,
-                fechar_callback=None,
-            )
-            modal.abrir()
-
-        def finalizar_os_callback(os):
-            def atualizar_tabela_carros():
-                if hasattr(self, "tabela_carros_manutencao") and hasattr(
-                    self, "painel_service"
-                ):
-                    self.tabela_carros_manutencao.atualizar(
-                        self.painel_service.listar_carros_em_manutencao()
-                    )
-
-            def salvar_finalizacao(dados):
-                # Atualiza o status para 'Finalizada' e salva no banco
-                dados["status"] = "Finalizada"
-                self.ordem_servico.editar_ordem_servico(dados)
-                self.refresh_all()
-                atualizar_tabela_carros()
-
-            def fechar_modal_callback():
-                atualizar_tabela_carros()
-
-            modal = ModalEditarOrdemServico(
-                page=self.page,
-                ordem=os,
-                salvar_callback=salvar_finalizacao,
-                fechar_callback=fechar_modal_callback,
-                titulo="Finalizar O.S",
-            )
-            modal.abrir()
-
-        self.tabela_carros_manutencao = TabelaCarrosManutencao(
-            self.page,
-            finalizar_callback=finalizar_os_callback,
-        )
-        self.painel_view = PainelView(self.page, self.tabela_carros_manutencao)
-        # Atualiza a tabela do painel ao iniciar
-        self.tabela_carros_manutencao.atualizar(
-            self.painel_service.listar_carros_em_manutencao()
-        )
 
         # Funções utilitárias para atualizar todas as tabelas após mudanças
         def refresh_all():
             try:
                 self.estoque.carregar_produtos()
-            except Exception:
-                pass
-            try:
-                if hasattr(self, "tabela_ordem_servico") and self.tabela_ordem_servico:
-                    self.tabela_ordem_servico.popular_tabela_ordem_servico()
             except Exception:
                 pass
             try:
@@ -207,37 +136,6 @@ class App:
             salvar_edicao=_salvar_edicao_produto,
         )
 
-        def _add_ordem_servico(d):
-            self.ordem_servico.adicionar_ordem_servico(d)
-            self.refresh_all()
-
-        def _excluir_ordem_servico(d):
-            self.ordem_servico.excluir_ordem_servico(d)
-            self.refresh_all()
-
-        def _editar_ordem_servico(d):
-            self.ordem_servico.editar_ordem_servico(d)
-            self.refresh_all()
-
-        def _popular_ordem_servico():
-            self.ordem_servico.tabela_ordem_servico.popular_tabela_ordem_servico()
-
-        self.tabela_ordem_servico = TabelaOrdemServico(
-            page,
-            lambda: self.modal_nova_ordem_servico.abrir_modal_adicionar_ordem_servico(),
-            _excluir_ordem_servico,
-            _editar_ordem_servico,
-            ordem_servico_service.listar_ordens_servico,
-            None,
-        )
-        self.modal_nova_ordem_servico = ModalAdicionarOrdemServico(
-            page,
-            _add_ordem_servico,  # adicionar_ordem_servico
-            None,  # editar_ordem_servico
-            None,  # mostrar_snack_mensagem
-            _popular_ordem_servico,  # popular_tabela_ordem_servico
-        )
-
         # instancia view de configurações (padronizada)
         self.configuracoes = ConfiguracoesView(page)
 
@@ -258,16 +156,8 @@ class App:
                                         ft.TabBar(
                                             tabs=[
                                                 ft.Tab(
-                                                    label="PAINEL",
-                                                    icon=ft.Icons.DASHBOARD,
-                                                ),
-                                                ft.Tab(
                                                     label="ESTOQUE",
                                                     icon=ft.Icons.INVENTORY,
-                                                ),
-                                                ft.Tab(
-                                                    label="O.S.",
-                                                    icon=ft.Icons.DESCRIPTION,
                                                 ),
                                                 ft.Tab(
                                                     label="CLIENTES",
@@ -280,6 +170,10 @@ class App:
                                                 ft.Tab(
                                                     label="ORÇAMENTOS",
                                                     icon=ft.Icons.BOOK,
+                                                ),
+                                                ft.Tab(
+                                                    label="VENDAS",
+                                                    icon=ft.Icons.POINT_OF_SALE,
                                                 ),
                                                 ft.Tab(
                                                     label="RELATÓRIOS",
@@ -297,7 +191,6 @@ class App:
                                         ft.TabBarView(
                                             expand=True,
                                             controls=[
-                                                self.painel_view.layout,
                                                 # ESTOQUE
                                                 ft.Container(
                                                     padding=20,
@@ -308,19 +201,6 @@ class App:
                                                         expand=True,
                                                         controls=[
                                                             self.estoque.layout,
-                                                        ],
-                                                    ),
-                                                ),
-                                                # O.S.
-                                                ft.Container(
-                                                    padding=20,
-                                                    bgcolor=ft.Colors.GREY_300,
-                                                    border_radius=12,
-                                                    expand=True,
-                                                    content=ft.Column(
-                                                        expand=True,
-                                                        controls=[
-                                                            self.ordem_servico.layout_ordem_servico,
                                                         ],
                                                     ),
                                                 ),
@@ -347,6 +227,14 @@ class App:
                                                     border_radius=12,
                                                     expand=True,
                                                     content=self.orcamentos.layout,
+                                                ),
+                                                # VENDAS
+                                                ft.Container(
+                                                    padding=20,
+                                                    bgcolor=ft.Colors.GREY_300,
+                                                    border_radius=12,
+                                                    expand=True,
+                                                    content=self.vendas.layout,
                                                 ),
                                                 # RELATÓRIOS
                                                 ft.Container(
@@ -377,7 +265,6 @@ class App:
         )
 
         self.estoque.carregar_produtos()
-        self.tabela_ordem_servico.carregar_ordens_servico()
         page.update()
 
 

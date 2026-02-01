@@ -1,0 +1,379 @@
+import flet as ft
+from backend.services.venda_service import VendaService
+from backend.services.vendas_dropdown_service import VendasDropdownService
+from backend.utils.pdf_generator import gerar_pdf_venda
+import datetime
+import sqlite3
+
+
+class VendasView:
+    def __init__(self, page: ft.Page):
+        self.page = page
+        self.venda_service = VendaService()
+        self.dropdown_service = VendasDropdownService()
+        self.cliente_dropdown = ft.Dropdown(
+            label="Cliente",
+            width=300,
+            options=[
+                ft.dropdown.Option(nome)
+                for nome in self.dropdown_service.listar_nomes_clientes()
+            ],
+        )
+        self.produto_dropdown = ft.Dropdown(
+            label="Produto",
+            width=200,
+            options=[
+                ft.dropdown.Option(nome)
+                for nome in self.dropdown_service.listar_nomes_produtos()
+            ],
+        )
+        self.quantidade_input = ft.TextField(label="Quantidade", width=100, value="1")
+        self.adicionar_btn = ft.ElevatedButton(
+            "Adicionar Item",
+            icon=ft.Icons.ADD_SHOPPING_CART,
+            bgcolor=ft.Colors.BLUE_600,
+            color=ft.Colors.WHITE,
+            on_click=self.adicionar_item,
+        )
+        # guarda dados para a tabela de itens
+        self.itens = []
+        self.itens_tabela_itens = []
+        self.tabela_itens = (
+            ft.Container(
+                ft.Row(
+                    ft.Column(
+                        ft.Text(
+                            "Produto",
+                            weight=ft.FontWeight.BOLD,
+                            color=ft.Colors.GREY_800,
+                        )
+                    ),
+                    ft.Column(
+                        ft.Text(
+                            "Quantidade",
+                            weight=ft.FontWeight.BOLD,
+                            color=ft.Colors.GREY_800,
+                        )
+                    ),
+                    ft.Column(
+                        ft.Text(
+                            "Valor Unitário",
+                            weight=ft.FontWeight.BOLD,
+                            color=ft.Colors.GREY_800,
+                        )
+                    ),
+                    ft.Column(
+                        ft.Text(
+                            "Valor Total",
+                            weight=ft.FontWeight.BOLD,
+                            color=ft.Colors.GREY_800,
+                        )
+                    ),
+                    ft.Column(
+                        ft.Text(
+                            "Ações",
+                            weight=ft.FontWeight.BOLD,
+                            color=ft.Colors.GREY_800,
+                        )
+                    ),
+                    # Removido container intermediário, DataTable será usado diretamente no layout
+                ),
+                ft.Row(
+                    self.itens_tabela_itens,
+                    scroll=ft.ScrollMode.ALWAYS,
+                ),
+                border=ft.border.all(1, ft.Colors.BLUE_100),
+                border_radius=8,
+            ),
+        )
+        self.forma_pagamento_dropdown = ft.Dropdown(
+            label="Forma de Pagamento",
+            width=200,
+            options=[
+                ft.dropdown.Option("Dinheiro"),
+                ft.dropdown.Option("Cartão de Crédito"),
+                ft.dropdown.Option("Cartão de Débito"),
+                ft.dropdown.Option("Pix"),
+                ft.dropdown.Option("Boleto"),
+            ],
+        )
+        # Removido container intermediário, DataTable será usado diretamente no layout
+        self.total_text = ft.Text(
+            "Total: R$ 0,00",
+            size=18,
+            weight=ft.FontWeight.BOLD,
+            color=ft.Colors.GREEN_700,
+        )
+        self.finalizar_btn = ft.ElevatedButton(
+            "Finalizar Venda",
+            icon=ft.Icons.POINT_OF_SALE,
+            bgcolor=ft.Colors.GREEN_600,
+            color=ft.Colors.WHITE,
+            on_click=self.finalizar_venda,
+        )
+
+        self.historico_tabela = ft.DataTable(
+            columns=[
+                ft.DataColumn(ft.Text("Cliente", weight=ft.FontWeight.BOLD)),
+                ft.DataColumn(ft.Text("Forma de Pagamento", weight=ft.FontWeight.BOLD)),
+                ft.DataColumn(ft.Text("Data", weight=ft.FontWeight.BOLD)),
+                ft.DataColumn(ft.Text("Total de Itens", weight=ft.FontWeight.BOLD)),
+                ft.DataColumn(ft.Text("Valor Total", weight=ft.FontWeight.BOLD)),
+            ],
+            rows=[self.itens],
+            border=ft.border.all(1, ft.Colors.GREY_200),
+            border_radius=8,
+            heading_row_color=ft.Colors.BLUE_50,
+            data_row_color=ft.Colors.WHITE,
+            column_spacing=24,
+        )
+        # Container da tabela de itens precisa ser acessível para update
+        self.tabela_itens_title = ft.Text(
+            "Itens da Venda",
+            size=18,
+            weight=ft.FontWeight.BOLD,
+            color=ft.Colors.BLUE_700,
+        )
+        self.tabela_itens_container = ft.Container(
+            content=ft.Column([self.tabela_itens], scroll=ft.ScrollMode.ALWAYS),
+            bgcolor=ft.Colors.WHITE,
+            height=200,
+            border_radius=8,
+            padding=ft.padding.only(top=4),
+            margin=ft.margin.only(bottom=8),
+        )
+        self.layout = ft.Container(
+            bgcolor=ft.Colors.GREY_100,
+            padding=ft.padding.all(32),
+            expand=True,
+            content=ft.Column(
+                [
+                    ft.Container(
+                        content=ft.Text(
+                            "Área de Vendas",
+                            size=32,
+                            weight=ft.FontWeight.BOLD,
+                            color=ft.Colors.BLUE_900,
+                        ),
+                        padding=ft.padding.symmetric(vertical=12),
+                        alignment=ft.Alignment.CENTER,
+                    ),
+                    ft.Container(
+                        content=ft.Row(
+                            [
+                                self.cliente_dropdown,
+                                self.produto_dropdown,
+                                self.quantidade_input,
+                                self.adicionar_btn,
+                            ],
+                            spacing=24,
+                        ),
+                        bgcolor=ft.Colors.WHITE,
+                        border_radius=12,
+                        shadow=ft.BoxShadow(
+                            spread_radius=1,
+                            blur_radius=8,
+                            color=ft.Colors.with_opacity(0.12, ft.Colors.BLUE_900),
+                            offset=ft.Offset(0, 4),
+                        ),
+                        padding=ft.padding.all(16),
+                        margin=ft.margin.only(bottom=16),
+                    ),
+                    self.tabela_itens_title,
+                    self.tabela_itens_container,
+                    ft.Row(
+                        [
+                            ft.Container(
+                                self.total_text,
+                                expand=2,
+                                padding=ft.padding.all(8),
+                            ),
+                            ft.Container(
+                                self.forma_pagamento_dropdown,
+                                expand=1,
+                                padding=ft.padding.all(8),
+                            ),
+                            ft.Container(
+                                self.finalizar_btn,
+                                expand=1,
+                                padding=ft.padding.all(8),
+                            ),
+                        ],
+                        alignment=ft.MainAxisAlignment.END,
+                        spacing=24,
+                    ),
+                    ft.Divider(height=32, color=ft.Colors.BLUE_100),
+                    ft.Container(
+                        content=ft.Column(
+                            [
+                                ft.Text(
+                                    "Histórico de Vendas",
+                                    size=24,
+                                    weight=ft.FontWeight.BOLD,
+                                    color=ft.Colors.BLUE_700,
+                                ),
+                                self.historico_tabela,
+                            ],
+                            spacing=12,
+                        ),
+                        bgcolor=ft.Colors.WHITE,
+                        border_radius=12,
+                        shadow=ft.BoxShadow(
+                            spread_radius=1,
+                            blur_radius=8,
+                            color=ft.Colors.with_opacity(0.10, ft.Colors.BLUE_700),
+                            offset=ft.Offset(0, 2),
+                        ),
+                        padding=ft.padding.all(20),
+                        margin=ft.margin.only(top=24),
+                    ),
+                ],
+                expand=True,
+                spacing=20,
+                scroll=ft.ScrollMode.AUTO,
+            ),
+        )
+        self.atualizar_historico_vendas()
+
+    def atualizar_historico_vendas(self):
+        vendas = self.venda_service.listar_vendas()
+        linhas = []
+        for venda in vendas:
+            venda_id, cliente, forma_pagamento, data = venda
+            total_itens = self.obter_total_itens_venda(venda_id)
+            valor_total = self.obter_valor_total_venda(venda_id)
+            linhas.append(
+                ft.DataRow(
+                    cells=[
+                        ft.DataCell(ft.Text(cliente)),
+                        ft.DataCell(ft.Text(forma_pagamento or "-")),
+                        ft.DataCell(ft.Text(data)),
+                        ft.DataCell(ft.Text(str(total_itens))),
+                        ft.DataCell(ft.Text(f"R$ {valor_total:.2f}")),
+                    ]
+                )
+            )
+        self.historico_tabela.rows = linhas
+        self.page.update()
+
+    def obter_valor_total_venda(self, venda_id):
+        conn = sqlite3.connect("sistema.db")
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT SUM(quantidade * (SELECT preco_venda FROM estoque WHERE nome=produto)) FROM itens_venda WHERE venda_id = ?",
+            (venda_id,),
+        )
+        result = cursor.fetchone()
+        conn.close()
+        return float(result[0]) if result and result[0] else 0.0
+
+    def obter_total_itens_venda(self, venda_id):
+
+        conn = sqlite3.connect("sistema.db")
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT SUM(quantidade) FROM itens_venda WHERE venda_id = ?", (venda_id,)
+        )
+        result = cursor.fetchone()
+        conn.close()
+        return result[0] if result and result[0] else 0
+
+    def adicionar_item(self, e):
+        produto = self.produto_dropdown.value
+        quantidade = self.quantidade_input.value.strip()
+        if not produto or not quantidade.isdigit() or int(quantidade) <= 0:
+            self.page.snack_bar = ft.SnackBar(
+                ft.Text("Selecione um produto e informe uma quantidade válida!"),
+                bgcolor=ft.Colors.RED_400,
+            )
+            self.page.snack_bar.open = True
+            self.page.update()
+            return
+        # Buscar valor unitário do produto
+        conn = sqlite3.connect("sistema.db")
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT preco_venda FROM estoque WHERE nome=? LIMIT 1", (produto,)
+        )
+        row = cursor.fetchone()
+        conn.close()
+        valor_unitario = float(row[0]) if row and row[0] else 0.0
+        valor_total = valor_unitario * int(quantidade)
+        self.itens.append(
+            {
+                "produto": produto,
+                "quantidade": int(quantidade),
+                "valor_unitario": valor_unitario,
+                "valor_total": valor_total,
+            }
+        )
+        print("DEBUG ITENS:", self.itens)
+        self.produto_dropdown.value = None
+        self.quantidade_input.value = "1"
+        self.atualizar_tabela()
+        print("DEBUG ATUALIZAR_TABELA CHAMADA")
+        self.page.update()
+
+    def remover_item(self, index):
+        self.itens.pop(index)
+        self.atualizar_tabela()
+        self.page.update()
+
+    def atualizar_tabela(self):
+        self.itens_tabela_itens.clear()
+        for i, item in enumerate(self.itens):
+            self.itens_tabela_itens.append(
+                ft.Row(
+                    [
+                        ft.Text(item["produto"]),
+                        ft.Text(str(item["quantidade"])),
+                        ft.Text(f"R$ {item['valor_unitario']:.2f}"),
+                        ft.Text(f"R$ {item['valor_total']:.2f}"),
+                        ft.IconButton(
+                            icon=ft.Icons.DELETE,
+                            icon_color=ft.Colors.RED_400,
+                            on_click=(lambda idx: (lambda e: self.remover_item(idx)))(
+                                i
+                            ),
+                        ),
+                    ]
+                )
+            )
+        total_geral = sum(item["valor_total"] for item in self.itens)
+        self.total_text.value = f"Total: R$ {total_geral:.2f}  |  Itens: {sum(item['quantidade'] for item in self.itens)}"
+        self.page.update()
+
+    def finalizar_venda(self, e):
+        cliente = self.cliente_dropdown.value
+        forma_pagamento = self.forma_pagamento_dropdown.value
+        if not cliente or not self.itens or not forma_pagamento:
+            self.page.snack_bar = ft.SnackBar(
+                ft.Text(
+                    "Selecione o cliente, a forma de pagamento e adicione ao menos um item!"
+                ),
+                bgcolor=ft.Colors.RED_400,
+            )
+            self.page.snack_bar.open = True
+            self.page.update()
+            return
+        venda_id = self.venda_service.registrar_venda(
+            cliente, forma_pagamento, self.itens
+        )
+        venda_data = {
+            "id": venda_id,
+            "cliente": cliente,
+            "data": datetime.datetime.now().strftime("%d/%m/%Y %H:%M"),
+            "forma_pagamento": forma_pagamento,
+        }
+        pdf_path = gerar_pdf_venda(venda_data, self.itens)
+        self.page.snack_bar = ft.SnackBar(
+            ft.Text(f"Venda registrada com sucesso! PDF salvo em: {pdf_path}"),
+            bgcolor=ft.Colors.GREEN_400,
+        )
+        self.cliente_dropdown.value = None
+        self.forma_pagamento_dropdown.value = None
+        self.itens.clear()
+        self.atualizar_tabela()
+        self.atualizar_historico_vendas()
+        self.page.snack_bar.open = True
+        self.page.update()

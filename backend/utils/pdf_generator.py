@@ -92,6 +92,54 @@ def gerar_pdf_ordem_servico(ordem, pasta="interface/assets/os/"):
     return caminho
 
 
+def gerar_pdf_venda(venda, itens, pasta="interface/assets/vendas/"):
+    if not os.path.exists(pasta):
+        os.makedirs(pasta)
+
+    from tempfile import mkstemp
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt="Comprovante de Venda", ln=True, align="C")
+    pdf.ln(4)
+    pdf.cell(0, 8, txt=f"Cliente: {venda.get('cliente','')} ", ln=True)
+    pdf.cell(0, 8, txt=f"Data: {venda.get('data','')} ", ln=True)
+    pdf.cell(
+        0, 8, txt=f"Forma de Pagamento: {venda.get('forma_pagamento','')} ", ln=True
+    )
+    pdf.ln(4)
+    pdf.set_font("Arial", size=11)
+    pdf.cell(0, 8, txt="Itens:", ln=True)
+    for item in itens:
+        pdf.cell(0, 7, txt=f"- {item['produto']} (Qtd: {item['quantidade']})", ln=True)
+    pdf.ln(6)
+    pdf.set_font("Arial", size=12)
+    pdf.cell(
+        0, 10, txt=f"Total de itens: {sum(i['quantidade'] for i in itens)}", ln=True
+    )
+    nome_arquivo = f"venda_{venda.get('id','')}.pdf"
+    caminho = os.path.join(pasta, nome_arquivo)
+    tmp_fd, tmp_path = mkstemp(suffix=".pdf")
+    try:
+        os.close(tmp_fd)
+    except Exception:
+        pass
+    pdf.output(tmp_path)
+    try:
+        from shutil import copyfile
+
+        copyfile(tmp_path, caminho)
+    except Exception as e:
+        print("[PDF VENDA] erro ao salvar PDF:", e)
+    finally:
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
+    return caminho
+
+
 import os
 from fpdf import FPDF
 from backend.services.company_service import CompanyService
