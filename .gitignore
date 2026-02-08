@@ -1,0 +1,10 @@
+
+# ambiente virtual 
+gerenciador_os
+
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+

@@ -2,6 +2,7 @@ import flet as ft
 import os
 import shutil
 from backend.services.company_service import CompanyService
+from interface.components.alertaSnack import alertSnackBarMensage
 
 
 class ConfiguracoesView:
@@ -197,8 +198,7 @@ class ConfiguracoesView:
             print("[CONFIG] Salvando config:", data)
             self.service.salvar_config(data)
             print("[CONFIG] Salvo com sucesso no service")
-            self.page.snack_bar = ft.SnackBar(ft.Text("Configurações salvas"))
-            self.page.snack_bar.open = True
+            alertSnackBarMensage(self.page, "Configurações salvas")
         except Exception as err:
             print("Erro ao salvar config:", err)
         self.page.update()
@@ -209,8 +209,7 @@ class ConfiguracoesView:
                 os.remove(self.logo_path)
             self.service.deletar_logo()
             self._load_logo_preview()
-            self.page.snack_bar = ft.SnackBar(ft.Text("Logo removido"))
-            self.page.snack_bar.open = True
+            alertSnackBarMensage(self.page, "Logo removido")
         except Exception as err:
             print("Erro ao remover logo:", err)
         self.page.update()

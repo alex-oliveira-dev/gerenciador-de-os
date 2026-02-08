@@ -1,5 +1,6 @@
 import flet as ft
 import json
+from interface.components.alertaSnack import alertSnackBarMensage
 
 
 class TabelaOrcamento:
@@ -115,7 +116,7 @@ class TabelaOrcamento:
             import os
             import platform
             import webbrowser
-            from flet import SnackBar, Text, AlertDialog, Button
+            from flet import Text, AlertDialog, Button
 
             # tenta importar WebView; se não existir, faz fallback
             try:
@@ -134,11 +135,11 @@ class TabelaOrcamento:
             assets_pdf_path = os.path.join(assets_dir, pdf_file)
 
             if not os.path.exists(assets_pdf_path):
-                self.page.snack_bar = SnackBar(
-                    Text("PDF não encontrado para este orçamento.")
+                alertSnackBarMensage(
+                    self.page,
+                    "PDF não encontrado para este orçamento.",
+                    bgcolor=ft.Colors.RED_400,
                 )
-                self.page.snack_bar.open = True
-                self.page.update()
                 return
 
             if webview_available:
@@ -169,11 +170,11 @@ class TabelaOrcamento:
                         webbrowser.open(f"file://{assets_pdf_path}")
                 except Exception as err:
                     print(f"Erro ao abrir PDF externamente: {err}")
-                    self.page.snack_bar = SnackBar(
-                        Text("Não foi possível abrir o PDF.")
+                    alertSnackBarMensage(
+                        self.page,
+                        "Não foi possível abrir o PDF.",
+                        bgcolor=ft.Colors.RED_400,
                     )
-                    self.page.snack_bar.open = True
-                    self.page.update()
 
         return ft.Container(
             padding=10,

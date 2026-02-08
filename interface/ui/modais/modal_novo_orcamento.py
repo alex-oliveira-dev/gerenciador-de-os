@@ -308,7 +308,7 @@ class ModalNovoOrcamento:
                             c.selected_index = idx
                             break
         self.page.update()
-        self._cancelar_modal_item(e)
+        # Não chama _cancelar_modal_item aqui, pois o item_dialog já foi fechado/removido
 
     def _cancelar_modal(self, e):
         self.dialog.open = False

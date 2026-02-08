@@ -12,21 +12,34 @@ class RelatorioService:
         self.estoque_repo = EstoqueRepository()
         self.orc_repo = OrcamentoRepository()
 
-    def gerar_relatorio_financeiro(self):
+    def gerar_relatorio_financeiro(self, periodo=None):
         lancamentos = self.lanc_repo.listar_ordens_servico()
         total_entradas = 0.0
         total_saidas = 0.0
         por_data = {}
+        ganhos_por_mes = {}
         for l in lancamentos:
             tipo = str(l.get("tipo") or "").upper()
             preco = float(l.get("preco") or 0)
             qtd = int(l.get("quantidade") or 0)
             valor = preco * qtd
             data = l.get("data") or ""
+            mes = ""
+            if data:
+                try:
+                    mes = data[:7]  # AAAA-MM
+                except Exception:
+                    mes = data
+            if periodo and mes != periodo:
+                continue
             if tipo == "ENTRADA":
                 total_entradas += valor
+                ganhos_por_mes.setdefault(mes, 0.0)
+                ganhos_por_mes[mes] += valor
             else:
                 total_saidas += valor
+                ganhos_por_mes.setdefault(mes, 0.0)
+                ganhos_por_mes[mes] -= valor
             por_data.setdefault(data, {"entradas": 0.0, "saidas": 0.0})
             if tipo == "ENTRADA":
                 por_data[data]["entradas"] += valor
@@ -39,9 +52,9 @@ class RelatorioService:
             "total_saidas": total_saidas,
             "saldo": saldo,
             "por_data": por_data,
+            "ganhos_por_mes": ganhos_por_mes,
             "gerado_em": datetime.datetime.now().isoformat(),
         }
-        # salva metadado do relatório
         self.repo.salvar_relatorio(
             nome="Financeiro",
             tipo="financeiro",

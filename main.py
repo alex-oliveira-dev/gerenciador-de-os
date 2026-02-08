@@ -12,6 +12,7 @@ from interface.ui.views.relatorios_view import RelatoriosView
 from interface.ui.views.vendas_view import VendasView
 from interface.ui.views.config_view import ConfiguracoesView
 from interface.ui.modais.modal_produto import ModalProduto
+from interface.components.alertaSnack import alertSnackBarMensage
 import threading
 
 
@@ -22,51 +23,11 @@ class App:
         # Permite acesso global à instância App a partir de page
         setattr(self.page, "app_instance", self)
         page.window_min_width = 980
-        page.window_min_height = 1280
+        page.window_min_height = 1200
         page.resizable = False
         page.title = "Sistema de Gestão HSO SOLUTIONS"
         page.theme_mode = ft.ThemeMode.LIGHT
-        # Migrar arquivos da pasta assets (raiz) para interface/assets
-        try:
-            root_assets = os.path.join(os.path.dirname(__file__), "assets")
-            interface_assets = os.path.join(
-                os.path.dirname(__file__), "interface", "assets"
-            )
-            if os.path.exists(root_assets):
-                os.makedirs(interface_assets, exist_ok=True)
-                interface_orcamentos = os.path.join(interface_assets, "orçamentos")
-                os.makedirs(interface_orcamentos, exist_ok=True)
-                for f in os.listdir(root_assets):
-                    src = os.path.join(root_assets, f)
-                    # se for PDF de orçamento, mover para subpasta orçamentos
-                    ext = os.path.splitext(f)[1].lower()
-                    if f.lower().startswith("orcamento_"):
-                        dst = os.path.join(interface_orcamentos, f)
-                    elif ext in (".png", ".jpg", ".jpeg", ".gif", ".bmp"):
-                        # imagens -> pasta de logos
-                        interface_logo = os.path.join(interface_assets, "logo")
-                        os.makedirs(interface_logo, exist_ok=True)
-                        dst = os.path.join(interface_logo, f)
-                    else:
-                        dst = os.path.join(interface_assets, f)
-
-                    try:
-                        if not os.path.exists(dst):
-                            shutil.move(src, dst)
-                        else:
-                            # se já existe no destino, remove o original
-                            os.remove(src)
-                    except Exception as mv_err:
-                        print("Erro movendo asset:", mv_err)
-                # tenta remover a pasta raiz se vazia
-                try:
-                    if not os.listdir(root_assets):
-                        os.rmdir(root_assets)
-                except Exception:
-                    pass
-        except Exception as e:
-            print("Erro ao migrar assets:", e)
-        print(type(self.page))
+        
 
         def iniciar_atualizacao_periodica(self):
             def atualizar_tabelas():
@@ -85,7 +46,11 @@ class App:
         self.estoque = EstoqueView(page)
         self.clientes = ClienteView(page)
         self.funcionarios = FuncionarioView(page)
-        self.orcamentos = OrcamentoView(page, lambda msg: None)
+        def mostrar_snack_mensagem(mensagem, bgcolor=ft.Colors.AMBER, text_color=ft.Colors.WHITE):
+            alertSnackBarMensage(self.page, mensagem, bgcolor, text_color)
+
+        self.mostrar_snack_mensagem = mostrar_snack_mensagem
+        self.orcamentos = OrcamentoView(page, self.mostrar_snack_mensagem)
         self.relatorios = RelatoriosView(page)
         self.vendas = VendasView(page)
 
