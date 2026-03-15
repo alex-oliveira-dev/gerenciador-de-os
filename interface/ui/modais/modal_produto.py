@@ -118,11 +118,14 @@ class ModalProduto:
         # if self.dialog in self.page.overlay:
         #     self.page.overlay.remove(self.dialog)
         self.limpar_campos()
-        self.carregar_produtos()
         print("Fechou modal produto")
 
     def salvar(self, e):
         # salvar sem overlay de loading
+        if self.quantidade.value == "":
+            self.mostrar_snackbar("Preencha ao menos os campos de Nome, Código, Quantidade e Preço do produto.", ft.Colors.RED_400)
+            return
+        
         produto = {
             "id": self.produto_id,
             "nome": self.nome.value,
@@ -133,13 +136,32 @@ class ModalProduto:
             "preco_custo": float(self.preco_custo.value or 0),
             "preco_venda": float(self.preco_venda.value or 0),
         }
+
+
+        if not produto["nome"] or not produto["codigo"] or not produto["quantidade"] or not produto["preco_custo"] or not produto["preco_venda"]:
+            self.mostrar_snackbar("Nome, Código, Quantidade e Preço do produto são obrigatórios.", ft.Colors.RED_400)
+            return  
+        
         try:
             if self.produto_id:
                 self.on_salvar_alteracoes(produto)
+                self.mostrar_snackbar("Produto atualizado com sucesso!", ft.Colors.GREEN_400)
             else:
                 self.on_salvar(produto)
+                self.mostrar_snackbar("Produto salvo com sucesso!", ft.Colors.GREEN_400)
+        except Exception as erro:
+            self.mostrar_snackbar(f"Erro ao salvar produto: {erro}", ft.Colors.RED_400)
         finally:
             self.fechar()
+
+    def mostrar_snackbar(self, mensagem: str, cor: str):
+        snackbar = ft.SnackBar(
+            ft.Text(mensagem),
+            bgcolor=cor,
+        )
+        self.page.overlay.append(snackbar)
+        snackbar.open = True
+        self.page.update()
 
     def limpar_campos(self):
 
@@ -168,4 +190,4 @@ class ModalProduto:
         self.limpar_campos()
         self.fechar()
         self.on_salvar_alteracoes(produto)
-        pass
+       

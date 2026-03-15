@@ -1,3 +1,5 @@
+import asyncio
+
 from backend.database.criar_banco_completo import criar_banco_completo
 from backend.services.painel_service import PainelService
 import flet as ft
@@ -14,29 +16,44 @@ from interface.ui.views.config_view import ConfiguracoesView
 from interface.ui.modais.modal_produto import ModalProduto
 from interface.components.alertaSnack import alertSnackBarMensage
 import threading
-
+import asyncio
+from flet_lottie import Lottie
 
 class App:
 
     def __init__(self, page: ft.Page):
         self.page = page
+
         # Permite acesso global à instância App a partir de page
         setattr(self.page, "app_instance", self)
-        page.window_min_width = 980
-        page.window_min_height = 1200
-        page.resizable = False
-        page.title = "Sistema de Gestão HSO SOLUTIONS"
-        page.theme_mode = ft.ThemeMode.LIGHT
+        self.page.window_min_width = 980
+        self.page.window_min_height = 1200
+        self.page.resizable = False
+        self.page.title = "Sistema de Gestão HSO SOLUTIONS"
+        self.page.theme_mode = ft.ThemeMode.LIGHT
+        self._refresh_lock = threading.Lock()
+        self._refresh_interval_seconds = 30
         
 
         def iniciar_atualizacao_periodica(self):
             def atualizar_tabelas():
-                if hasattr(self, "refresh_all") and callable(self.refresh_all):
-                    self.refresh_all()
-                # agenda próxima execução
-                threading.Timer(10, atualizar_tabelas).start()  # 10s = 0.17min
+                if self._refresh_lock.acquire(blocking=False):
+                    try:
+                        if hasattr(self, "refresh_all") and callable(self.refresh_all):
+                            self.refresh_all()
+                    finally:
+                        self._refresh_lock.release()
 
-            threading.Timer(10, atualizar_tabelas).start()
+                # agenda próxima execução
+                timer = threading.Timer(
+                    self._refresh_interval_seconds, atualizar_tabelas
+                )
+                timer.daemon = True
+                timer.start()
+
+            timer = threading.Timer(self._refresh_interval_seconds, atualizar_tabelas)
+            timer.daemon = True
+            timer.start()
 
         self.iniciar_atualizacao_periodica = iniciar_atualizacao_periodica.__get__(self)
         # Inicia atualização periódica das tabelas
@@ -60,19 +77,19 @@ class App:
         # Funções utilitárias para atualizar todas as tabelas após mudanças
         def refresh_all():
             try:
-                self.estoque.carregar_produtos()
+                self.estoque.carregar_produtos(update_page=False)
             except Exception:
                 pass
             try:
-                self.clientes.atualizar_clientes()
+                self.clientes.atualizar_clientes(update_page=False)
             except Exception:
                 pass
             try:
-                self.funcionarios.atualizar_funcionarios()
+                self.funcionarios.atualizar_funcionarios(update_page=False)
             except Exception:
                 pass
             try:
-                self.orcamentos.atualizar_orcamentos()
+                self.orcamentos.atualizar_orcamentos(update_page=False)
             except Exception:
                 pass
             try:
@@ -104,17 +121,28 @@ class App:
         # instancia view de configurações (padronizada)
         self.configuracoes = ConfiguracoesView(page)
 
+        def _on_tab_change(e):
+            try:
+                if getattr(e.control, "selected_index", None) == 4:
+                    self.vendas.atualizar_lista_clientes(update_page=False)
+                    self.vendas.atualizar_lista_produtos(update_page=False)
+                    self.page.update()
+            except Exception:
+                pass
+
         page.add(
             ft.ResponsiveRow(
                 expand=True,
                 controls=[
                     ft.Column(
+
                         expand=True,
                         controls=[
                             ft.Tabs(
                                 length=8,
                                 selected_index=0,
                                 expand=True,
+                                on_change=_on_tab_change,
                                 content=ft.Column(
                                     expand=True,
                                     controls=[
@@ -233,10 +261,27 @@ class App:
         page.update()
 
 
-def main(page: ft.Page):
+async def main(page: ft.Page):
     # Garante que o banco de dados está criado/atualizado ao abrir o app
+
+    splash = Lottie(src="animations/12345.json", repeat=True, width=300, height=300, expand=True)
+
+    page.add(
+            ft.Row(
+                [splash],
+                expand=True,
+            ),
+        )
+
+    page.update()
+
+    await asyncio.sleep(3)
+
+    page.controls.clear()
+    
+
     criar_banco_completo()
     App(page)
 
 
-ft.app(target=main)
+ft.app(target=main, assets_dir="assets")

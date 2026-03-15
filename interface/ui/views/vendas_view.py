@@ -6,6 +6,7 @@ from backend.utils.pdf_generator import gerar_pdf_venda
 from interface.components.alertaSnack import alertSnackBarMensage
 import datetime
 import sqlite3
+import threading
 
 
 class VendasView:
@@ -16,18 +17,12 @@ class VendasView:
         self.cliente_dropdown = ft.Dropdown(
             label="Cliente",
             width=300,
-            options=[
-                ft.dropdown.Option(nome)
-                for nome in self.dropdown_service.listar_nomes_clientes()
-            ],
+            options=[],
         )
         self.produto_dropdown = ft.Dropdown(
             label="Produto",
             width=200,
-            options=[
-                ft.dropdown.Option(nome)
-                for nome in self.dropdown_service.listar_nomes_produtos()
-            ],
+            options=[],
         )
         self.quantidade_input = ft.TextField(label="Quantidade", width=100, value="1")
         self.adicionar_btn = ft.ElevatedButton(
@@ -144,7 +139,7 @@ class VendasView:
 
                 
             ],
-            rows=[self.itens],
+            rows=[],
             border=ft.border.all(1, ft.Colors.GREY_200),
             border_radius=8,
             heading_row_color=ft.Colors.BLUE_50,
@@ -251,36 +246,65 @@ class VendasView:
                 scroll=ft.ScrollMode.AUTO,
             ),
         )
-        self.atualizar_historico_vendas()
+        # Atualiza histórico em background (usa API do page quando disponível)
+        try:
+            page.run_thread(self.atualizar_historico_vendas)
+        except Exception:
+            threading.Thread(target=self.atualizar_historico_vendas, daemon=True).start()
+
+        self.atualizar_lista_clientes(update_page=False)
+        self.atualizar_lista_produtos(update_page=False)
+
+    def atualizar_lista_clientes(self, update_page=True):
+        nomes_clientes = self.dropdown_service.listar_nomes_clientes()
+        valor_atual = self.cliente_dropdown.value
+        self.cliente_dropdown.options = [
+            ft.dropdown.Option(nome) for nome in nomes_clientes
+        ]
+        if valor_atual not in nomes_clientes:
+            self.cliente_dropdown.value = None
+        if update_page:
+            self.page.update()
+
+    def atualizar_lista_produtos(self, update_page=True):
+        nomes_produtos = self.dropdown_service.listar_nomes_produtos()
+        valor_atual = self.produto_dropdown.value
+        self.produto_dropdown.options = [
+            ft.dropdown.Option(nome) for nome in nomes_produtos
+        ]
+        if valor_atual not in nomes_produtos:
+            self.produto_dropdown.value = None
+        if update_page:
+            self.page.update()
 
     def mostrar_detalhes_venda(self, venda_id):
-        # Buscar dados da venda
+        # Buscar dados da venda e itens em uma única série de consultas locais
         conn = sqlite3.connect("sistema.db")
         cursor = conn.cursor()
         cursor.execute("SELECT cliente, forma_pagamento, data FROM vendas WHERE id = ?", (venda_id,))
         venda = cursor.fetchone()
-        cursor.execute("SELECT produto, quantidade FROM itens_venda WHERE venda_id = ?", (venda_id,))
+        # traz também preço unitário via join para evitar múltiplas consultas
+        cursor.execute(
+            "SELECT iv.produto, iv.quantidade, COALESCE(e.preco_venda,0) FROM itens_venda iv LEFT JOIN estoque e ON e.nome = iv.produto WHERE iv.venda_id = ?",
+            (venda_id,),
+        )
         itens = cursor.fetchall()
         conn.close()
 
         cliente, forma_pagamento, data = venda if venda else ("-", "-", "-")
 
-
         total_pecas = 0.0
         itens_rows = []
-        for produto, quantidade in itens:
-            valor_unitario = self.obter_valor_unitario_item(venda_id, produto)
-            valor_total = self.obter_valor_total_item(venda_id, produto)
+        for produto, quantidade, valor_unitario in itens:
+            valor_total = (valor_unitario or 0.0) * (int(quantidade) if quantidade else 0)
             total_pecas += valor_total
             itens_rows.append(
-                ft.DataRow(
-                    cells=[
-                        ft.DataCell(ft.Text(produto)),
-                        ft.DataCell(ft.Text(str(quantidade))),
-                        ft.DataCell(ft.Text(f"R$ {valor_unitario:.2f}")),
-                        ft.DataCell(ft.Text(f"R$ {valor_total:.2f}")),
-                    ]
-                )
+                ft.DataRow(cells=[
+                    ft.DataCell(ft.Text(produto)),
+                    ft.DataCell(ft.Text(str(quantidade))),
+                    ft.DataCell(ft.Text(f"R$ {float(valor_unitario):.2f}")),
+                    ft.DataCell(ft.Text(f"R$ {valor_total:.2f}")),
+                ])
             )
 
         # Adiciona linha de total na última linha da tabela
@@ -336,6 +360,7 @@ class VendasView:
         self.page.update()
 
     def obter_valor_unitario_item(self, venda_id, produto):
+        # antigo: mantido por compatibilidade, mas agora não usado pela view otimizada
         conn = sqlite3.connect("sistema.db")
         cursor = conn.cursor()
         cursor.execute("SELECT preco_venda FROM estoque WHERE nome=? LIMIT 1", (produto,))
@@ -344,6 +369,7 @@ class VendasView:
         return float(row[0]) if row and row[0] else 0.0
 
     def obter_valor_total_item(self, venda_id, produto):
+        # mantido por compatibilidade; lógica de detalhe usa join para obter já os valores
         conn = sqlite3.connect("sistema.db")
         cursor = conn.cursor()
         cursor.execute("SELECT quantidade FROM itens_venda WHERE venda_id=? AND produto=?", (venda_id, produto))
@@ -356,30 +382,25 @@ class VendasView:
         vendas = self.venda_service.listar_vendas()
         linhas = []
         for venda in vendas:
-            venda_id, cliente, forma_pagamento, data = venda
-            total_itens = self.obter_total_itens_venda(venda_id)
-            valor_unitario = self.obter_valor_total_venda(venda_id) / total_itens if total_itens > 0 else 0.0
-            valor_total = self.obter_valor_total_venda(venda_id)
-            linhas.append(
-                ft.DataRow(
-                    cells=[
-                        ft.DataCell(ft.Text(cliente)),
-                        ft.DataCell(ft.Text(forma_pagamento or "-")),
-                        ft.DataCell(ft.Text(data)),
-                        ft.DataCell(ft.Text(str(total_itens))),
-                        ft.DataCell(ft.Text(f"R$ {valor_unitario:.2f}")),
-                        ft.DataCell(ft.Text(f"R$ {valor_total:.2f}")),
-                        ft.DataCell(
-                            ft.Button(
-                                "Detalhes",
-                                on_click=(lambda vid: (lambda e: self.mostrar_detalhes_venda(vid)))(venda_id)
-                            )
-                        ),
-                    ]
-                )
-            )
+            # agora a query de listar_vendas retorna: id, cliente, forma_pagamento, data, total_itens, total_valor
+            venda_id, cliente, forma_pagamento, data, total_itens, total_valor = venda
+            total_itens = int(total_itens) if total_itens else 0
+            valor_total = float(total_valor) if total_valor else 0.0
+            valor_unitario = (valor_total / total_itens) if total_itens > 0 else 0.0
+            linhas.append(ft.DataRow(cells=[
+                ft.DataCell(ft.Text(cliente)),
+                ft.DataCell(ft.Text(forma_pagamento or "-")),
+                ft.DataCell(ft.Text(data)),
+                ft.DataCell(ft.Text(str(total_itens))),
+                ft.DataCell(ft.Text(f"R$ {valor_unitario:.2f}")),
+                ft.DataCell(ft.Text(f"R$ {valor_total:.2f}")),
+                ft.DataCell(ft.Button("Detalhes", on_click=(lambda vid: (lambda e: self.mostrar_detalhes_venda(vid)))(venda_id)))
+            ]))
         self.historico_tabela.rows = linhas
-        self.page.update()
+        try:
+            self.page.update()
+        except Exception:
+            pass
 
     def obter_valor_total_venda(self, venda_id):
         conn = sqlite3.connect("sistema.db")
@@ -489,7 +510,7 @@ class VendasView:
         pdf_path = gerar_pdf_venda(venda_data, self.itens)
         alertSnackBarMensage(
             self.page,
-            f"Venda registrada com sucesso! PDF salvo em: {pdf_path}",
+            f"Venda registrada com sucesso!",
             bgcolor=ft.Colors.GREEN_400,
         )
         self.cliente_dropdown.value = None
@@ -497,5 +518,11 @@ class VendasView:
         self.itens.clear()
         self.atualizar_tabela()
         self.atualizar_historico_vendas()
-        self.page.snack_bar.open = True
-        self.page.update()
+        try:
+            self.page.snack_bar.open = True
+        except Exception:
+            pass
+        try:
+            self.page.update()
+        except Exception:
+            pass

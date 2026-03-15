@@ -1,4 +1,5 @@
 import flet as ft
+from interface.components.alertaSnack import alertSnackBarMensage
 
 
 class ModalCliente:
@@ -8,11 +9,11 @@ class ModalCliente:
         self.editar_cliente = editar_cliente
         self.cliente_id = None
 
-        self.nome = ft.TextField(label="Nome", on_change=self._upper_text)
-        self.cpf = ft.TextField(label="CPF", on_change=self._upper_text)
-        self.telefone = ft.TextField(label="Telefone", on_change=self._upper_text)
-        self.email = ft.TextField(label="Email", on_change=self._upper_text)
-        self.endereco = ft.TextField(label="Endereço", on_change=self._upper_text)
+        self.nome = ft.TextField(label="Nome")
+        self.cpf = ft.TextField(label="CPF")
+        self.telefone = ft.TextField(label="Telefone")
+        self.email = ft.TextField(label="Email")
+        self.endereco = ft.TextField(label="Endereço")
 
         self.dialog = ft.AlertDialog(
             modal=True,
@@ -44,11 +45,6 @@ class ModalCliente:
         )
         # overlay removido para agilizar interação
 
-    def _upper_text(self, e):
-        if e.control.value is not None:
-            e.control.value = e.control.value.upper()
-            self.page.update()
-
     def abrir_modal(self, cliente=None):
         self.limpar_campos()
         if cliente:
@@ -64,12 +60,12 @@ class ModalCliente:
         if self.dialog not in self.page.overlay:
             self.page.overlay.append(self.dialog)
         self.dialog.open = True
+        self.page.update()
 
     def fechar(self, e=None):
         self.dialog.open = False
-        # if self.dialog in self.page.overlay:
-        #     self.page.overlay.remove(self.dialog)
         self.limpar_campos()
+        self.page.update()
 
     def salvar(self, e):
         cliente = {
@@ -80,13 +76,26 @@ class ModalCliente:
             "email": self.email.value,
             "endereco": self.endereco.value,
         }
+        if not (cliente["nome"] or "").strip():
+            alertSnackBarMensage(
+                self.page,
+                "Informe ao menos o nome do cliente.",
+                bgcolor=ft.Colors.RED_400,
+            )
+            return
+
         try:
             if self.cliente_id:
                 self.editar_cliente(cliente)
             else:
                 self.adicionar_cliente(cliente)
-        finally:
             self.fechar()
+        except Exception as erro:
+            alertSnackBarMensage(
+                self.page,
+                f"Erro ao salvar cliente: {erro}",
+                bgcolor=ft.Colors.RED_400,
+            )
 
     def limpar_campos(self):
         self.cliente_id = None
@@ -95,4 +104,3 @@ class ModalCliente:
         self.telefone.value = ""
         self.email.value = ""
         self.endereco.value = ""
-        pass

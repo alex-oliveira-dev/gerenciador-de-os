@@ -187,7 +187,7 @@ class TabelaEstoque:
     # =============================
     # ATUALIZAR DADOS
     # =============================
-    def atualizar(self, itens_em_estoque):
+    def atualizar(self, itens_em_estoque, update_page=True):
         if isinstance(itens_em_estoque, dict):
             itens_em_estoque = [itens_em_estoque]
 
@@ -199,4 +199,5 @@ class TabelaEstoque:
         for idx, item in enumerate(itens_em_estoque):
             self.lista_itens.controls.append(self._linha(item, index=idx))
 
-        self.page.update()
+        if update_page:
+            self.page.update()

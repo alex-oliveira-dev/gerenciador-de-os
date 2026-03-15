@@ -37,7 +37,7 @@ class TabelaFuncionario:
         return ft.Container(
             bgcolor=ft.Colors.GREY_300,
             padding=10,
-            border=ft.border.only(bottom=ft.BorderSide(2, ft.Colors.BLACK54)),
+            border=ft.Border.only(bottom=ft.BorderSide(2, ft.Colors.BLACK54)),
             content=ft.Row(
                 [
                     ft.Text(
@@ -93,7 +93,7 @@ class TabelaFuncionario:
     def _linha_funcionario(self, funcionario, index):
         return ft.Container(
             padding=10,
-            border=ft.border.only(bottom=ft.BorderSide(1, ft.Colors.BLACK54)),
+            border=ft.Border.only(bottom=ft.BorderSide(1, ft.Colors.BLACK54)),
             content=ft.Row(
                 [
                     ft.Text(
@@ -150,7 +150,7 @@ class TabelaFuncionario:
             ),
         )
 
-    def atualizar(self, funcionarios):
+    def atualizar(self, funcionarios, update_page=True):
         self.lista_funcionarios.controls.clear()
         if not funcionarios:
             self.lista_funcionarios.controls.append(self.mensagem_vazia)
@@ -159,4 +159,5 @@ class TabelaFuncionario:
                 self.lista_funcionarios.controls.append(
                     self._linha_funcionario(funcionario, idx)
                 )
-        self.page.update()
+        if update_page:
+            self.page.update()

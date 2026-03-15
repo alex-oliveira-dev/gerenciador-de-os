@@ -11,43 +11,48 @@ class ClienteRepository:
     """
 
     def __init__(self):
+        self.db_path = DB_PATH
 
-        self.conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    def _get_conn(self):
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn.row_factory = sqlite3.Row
+        return conn
 
     def listar_clientes(self):
-        cursor = self.conn.execute("SELECT * FROM clientes")
-        return [
-            dict(zip([column[0] for column in cursor.description], row))
-            for row in cursor.fetchall()
-        ]
+        with self._get_conn() as conn:
+            cursor = conn.execute("SELECT * FROM clientes")
+            return [dict(row) for row in cursor.fetchall()]
 
     def adicionar_cliente(self, cliente):
-        self.conn.execute(
-            "INSERT INTO clientes (nome, cpf, telefone, email, endereco) VALUES (?, ?, ?, ?, ?)",
-            (
-                cliente["nome"],
-                cliente["cpf"],
-                cliente["telefone"],
-                cliente["email"],
-                cliente["endereco"],
-            ),
-        )
-        self.conn.commit()
+        with self._get_conn() as conn:
+            conn.execute(
+                "INSERT INTO clientes (nome, cpf, telefone, email, endereco) VALUES (?, ?, ?, ?, ?)",
+                (
+                    cliente["nome"],
+                    cliente["cpf"],
+                    cliente["telefone"],
+                    cliente["email"],
+                    cliente["endereco"],
+                ),
+            )
+            conn.commit()
 
     def editar_cliente(self, cliente_editado):
-        self.conn.execute(
-            "UPDATE clientes SET nome=?, cpf=?, telefone=?, email=?, endereco=? WHERE id=?",
-            (
-                cliente_editado["nome"],
-                cliente_editado["cpf"],
-                cliente_editado["telefone"],
-                cliente_editado["email"],
-                cliente_editado["endereco"],
-                cliente_editado["id"],
-            ),
-        )
-        self.conn.commit()
+        with self._get_conn() as conn:
+            conn.execute(
+                "UPDATE clientes SET nome=?, cpf=?, telefone=?, email=?, endereco=? WHERE id=?",
+                (
+                    cliente_editado["nome"],
+                    cliente_editado["cpf"],
+                    cliente_editado["telefone"],
+                    cliente_editado["email"],
+                    cliente_editado["endereco"],
+                    cliente_editado["id"],
+                ),
+            )
+            conn.commit()
 
     def excluir_cliente(self, cliente_id):
-        self.conn.execute("DELETE FROM clientes WHERE id=?", (cliente_id,))
-        self.conn.commit()
+        with self._get_conn() as conn:
+            conn.execute("DELETE FROM clientes WHERE id=?", (cliente_id,))
+            conn.commit()

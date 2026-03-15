@@ -240,7 +240,7 @@ class TabelaOrcamento:
             ),
         )
 
-    def atualizar(self, orcamentos):
+    def atualizar(self, orcamentos, update_page=True):
         self.lista_orcamentos.controls.clear()
         if not orcamentos:
             self.lista_orcamentos.controls.append(self.mensagem_vazia)
@@ -249,7 +249,8 @@ class TabelaOrcamento:
                 self.lista_orcamentos.controls.append(
                     self._linha_orcamento(orcamento, idx)
                 )
-        self.page.update()
+        if update_page:
+            self.page.update()
 
     def _excluir_pdf(self, pdf_file):
         import os

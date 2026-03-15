@@ -8,11 +8,11 @@ class ModalFuncionario:
         self.editar_funcionario = editar_funcionario
         self.funcionario_id = None
 
-        self.nome = ft.TextField(label="Nome", on_change=self._upper_text)
-        self.cargo = ft.TextField(label="Cargo", on_change=self._upper_text)
-        self.cpf = ft.TextField(label="CPF", on_change=self._upper_text)
-        self.telefone = ft.TextField(label="Telefone", on_change=self._upper_text)
-        self.email = ft.TextField(label="Email", on_change=self._upper_text)
+        self.nome = ft.TextField(label="Nome")
+        self.cargo = ft.TextField(label="Cargo")
+        self.cpf = ft.TextField(label="CPF")
+        self.telefone = ft.TextField(label="Telefone")
+        self.email = ft.TextField(label="Email")
 
         self.dialog = ft.AlertDialog(
             modal=True,
@@ -43,11 +43,6 @@ class ModalFuncionario:
             ],
         )
         # overlay removido para agilizar interação
-
-    def _upper_text(self, e):
-        if e.control.value is not None:
-            e.control.value = e.control.value.upper()
-            self.page.update()
 
     def abrir_modal(self, funcionario=None):
         self.limpar_campos()

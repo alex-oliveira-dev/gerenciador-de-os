@@ -2,6 +2,7 @@ import flet as ft
 from backend.services.cliente_service import cliente_service
 from interface.ui.tabelas.tabela_cliente import TabelaCliente
 from interface.ui.modais.modal_cliente import ModalCliente
+from interface.components.alertaSnack import alertSnackBarMensage
 
 
 class ClienteView:
@@ -29,27 +30,65 @@ class ClienteView:
             border_radius=12,
             padding=24,
         )
-        self.atualizar_clientes()
+        # carregar clientes em background para não bloquear UI
+        try:
+            page.run_thread(self.atualizar_clientes)
+        except Exception:
+            import threading
 
-    def atualizar_clientes(self):
+            threading.Thread(target=self.atualizar_clientes, daemon=True).start()
+
+    def atualizar_clientes(self, update_page=True):
         clientes = cliente_service.listar_clientes()
-        self.tabela.atualizar(clientes)
-        self.page.update()
+        self.tabela.atualizar(clientes, update_page=update_page)
 
     def adicionar_cliente(self, cliente):
-        cliente_service.adicionar_cliente(cliente)
-        self.atualizar_clientes()
-        self.page.update()
+        try:
+            cliente_service.adicionar_cliente(cliente)
+            self.atualizar_clientes(update_page=True)
+            alertSnackBarMensage(
+                self.page,
+                "Cliente salvo com sucesso!",
+                bgcolor=ft.Colors.GREEN_400,
+            )
+        except Exception as erro:
+            alertSnackBarMensage(
+                self.page,
+                f"Erro ao salvar cliente: {erro}",
+                bgcolor=ft.Colors.RED_400,
+            )
 
     def editar_cliente(self, cliente):
         self.modal.abrir_modal(cliente)
 
     def salvar_edicao(self, cliente):
-        cliente_service.editar_cliente(cliente)
-        self.atualizar_clientes()
-        self.page.update()
+        try:
+            cliente_service.editar_cliente(cliente)
+            self.atualizar_clientes(update_page=True)
+            alertSnackBarMensage(
+                self.page,
+                "Cliente atualizado com sucesso!",
+                bgcolor=ft.Colors.GREEN_400,
+            )
+        except Exception as erro:
+            alertSnackBarMensage(
+                self.page,
+                f"Erro ao editar cliente: {erro}",
+                bgcolor=ft.Colors.RED_400,
+            )
 
     def excluir_cliente(self, cliente):
-        cliente_service.excluir_cliente(cliente["id"])
-        self.atualizar_clientes()
-        self.page.update()
+        try:
+            cliente_service.excluir_cliente(cliente["id"])
+            self.atualizar_clientes(update_page=True)
+            alertSnackBarMensage(
+                self.page,
+                "Cliente excluído com sucesso!",
+                bgcolor=ft.Colors.GREEN_400,
+            )
+        except Exception as erro:
+            alertSnackBarMensage(
+                self.page,
+                f"Erro ao excluir cliente: {erro}",
+                bgcolor=ft.Colors.RED_400,
+            )

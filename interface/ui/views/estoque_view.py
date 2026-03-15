@@ -45,30 +45,35 @@ class EstoqueView:
             expand=True,
             padding=24,
         )
-        self.carregar_produtos()
+        # carregar produtos em background para não bloquear construção da UI
+        try:
+            page.run_thread(self.carregar_produtos)
+        except Exception:
+            import threading
+
+            threading.Thread(target=self.carregar_produtos, daemon=True).start()
 
     # =============================
     # CARREGAR PRODUTOS
     # =============================
-    def carregar_produtos(self):
+    def carregar_produtos(self, update_page=True):
         itens = estoque_service.listar_produtos()
-        self.tabela.atualizar(itens)
-        self.page.update()
+        self.tabela.atualizar(itens, update_page=update_page)
 
     # =============================
     # CRUD
     # =============================
     def adicionar_produto(self, produto):
         estoque_service.adicionar_produto(produto)
-        self.carregar_produtos()
+        self.carregar_produtos(update_page=True)
 
     def excluir_produto(self, item):
         estoque_service.deletar_produto(item["id"])
-        self.carregar_produtos()
+        self.carregar_produtos(update_page=True)
 
     def editar_produto(self, item):
         self.modal.abrir_modal_produto(item)
 
     def salvar_edicao(self, item):
         estoque_service.editar_produto(item)
-        self.carregar_produtos()
+        self.carregar_produtos(update_page=True)

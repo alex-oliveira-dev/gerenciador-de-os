@@ -14,6 +14,12 @@ class OrcamentoView:
         self.produto_service = EstoqueService()
         self.cliente_service = ClienteService()
         self.tabela_orcamento = TabelaOrcamento(page, self.excluir_orcamento)
+        self.modal_novo_orcamento = ModalNovoOrcamento(
+            self.page,
+            self.salvar_orcamento,
+            self.produto_service.listar_produtos(),
+            self.cliente_service.listar_clientes(),
+        )
         self.btn_novo_orcamento = ft.Button(
             "Novo Orçamento", on_click=self.abrir_modal_novo_orcamento
         )
@@ -35,7 +41,13 @@ class OrcamentoView:
             border_radius=12,
             padding=24,
         )
-        self.atualizar_orcamentos()
+        # atualizar orçamentos em segundo plano para não bloquear UI
+        try:
+            page.run_thread(self.atualizar_orcamentos)
+        except Exception:
+            import threading
+
+            threading.Thread(target=self.atualizar_orcamentos, daemon=True).start()
 
     def abrir_lista_orcamentos_por_cliente(self, e):
         orcamentos = self.orcamento_service.listar_orcamentos()
@@ -116,28 +128,30 @@ class OrcamentoView:
         dialog.open = False
         self.page.update()
 
-    def atualizar_orcamentos(self):
+    def atualizar_orcamentos(self, update_page=True):
         orcamentos = self.orcamento_service.listar_orcamentos()
-        self.tabela_orcamento.atualizar(orcamentos)
+        self.tabela_orcamento.atualizar(orcamentos, update_page=update_page)
 
     def abrir_modal_novo_orcamento(self, e):
         produtos = self.produto_service.listar_produtos()
         clientes = self.cliente_service.listar_clientes()
-        modal = ModalNovoOrcamento(self.page, self.salvar_orcamento, produtos, clientes)
-        modal.abrir()
+        self.modal_novo_orcamento.produtos = produtos
+        self.modal_novo_orcamento.clientes = clientes
+        self.modal_novo_orcamento.cliente_dropdown.options = [
+            ft.dropdown.Option(c["nome"]) for c in clientes
+        ]
+        self.modal_novo_orcamento.abrir()
 
     def salvar_orcamento(self, orcamento):
         novo_id = self.orcamento_service.adicionar_orcamento(orcamento)
         self.mostrar_snack_mensagem("Orçamento salvo com sucesso!")
         self.atualizar_orcamentos()
-        self.page.update()
         return novo_id
 
     def excluir_orcamento(self, orcamento):
         self.orcamento_service.deletar_orcamento(orcamento["id"])
         self.mostrar_snack_mensagem("Orçamento excluído!")
         self.atualizar_orcamentos()
-        self.page.update()
 
     def abrir(self):
         self.page.dialog = None  # Garante que não há outro dialog aberto

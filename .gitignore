@@ -1,10 +1,15 @@
+# Variáveis de ambiente
+.env
+.env.local
 
-# ambiente virtual 
-gerenciador_os
+# Dependências
+venv/
+env/
 
+# Arquivos de teste/cobertura
+.coverage
+htmlcov/
+.pytest_cache/
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-
+# Node (se usar)
+node_modules/

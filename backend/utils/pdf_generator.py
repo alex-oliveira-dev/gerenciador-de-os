@@ -611,7 +611,7 @@ def gerar_pdf(orcamento: dict, itens: list, caminho_saida: str, logo_path: str =
 
     pdf.cell(col_prod, 8, "Produto", border=1, align="L", fill=True)
     pdf.cell(col_qtd, 8, "Qtd", border=1, align="C", fill=True)
-    pdf.cell(col_preco, 8, "Preço", border=1, align="R", fill=True)
+    pdf.cell(col_preco, 8, "Valor Unit.", border=1, align="R", fill=True)
     pdf.ln()
 
     # Garanta ao menos 10 linhas: preenche abaixo com linhas vazias

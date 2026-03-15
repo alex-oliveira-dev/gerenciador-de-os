@@ -146,11 +146,12 @@ class TabelaCliente:
             ),
         )
 
-    def atualizar(self, clientes):
+    def atualizar(self, clientes, update_page=True):
         self.lista_clientes.controls.clear()
         if not clientes:
             self.lista_clientes.controls.append(self.mensagem_vazia)
         else:
             for idx, cliente in enumerate(clientes):
                 self.lista_clientes.controls.append(self._linha_cliente(cliente, idx))
-        self.page.update()
+        if update_page:
+            self.page.update()

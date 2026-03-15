@@ -44,7 +44,7 @@ class ConfiguracoesView:
             try:
                 if field.value:
                     field.value = str(field.value).upper()
-                    self.page.update()
+                    field.update()
             except Exception:
                 pass
 
@@ -96,36 +96,35 @@ class ConfiguracoesView:
         self._load()
 
     def _pick_logo(self, e=None):
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        path = filedialog.askopenfilename(
+            title="Selecione o arquivo de logo",
+            filetypes=[("Imagens", "*.png *.jpg *.jpeg *.gif *.bmp")],
+        )
+        root.destroy()
+        if not path:
+            return
         try:
-            import tkinter as tk
-            from tkinter import filedialog
-
-            root = tk.Tk()
-            root.withdraw()
-            path = filedialog.askopenfilename(
-                title="Selecione o arquivo de logo",
-                filetypes=[("Images", "*.png *.jpg *.jpeg *.gif *.bmp")],
+            _, ext = os.path.splitext(path)
+            dst = os.path.join(self.logo_dir, f"company_logo{ext}")
+            shutil.copy(path, dst)
+            self.logo_path = dst
+            self._load_logo_preview()
+        except Exception as err:
+            print("Erro ao copiar logo:", err)
+            alertSnackBarMensage(
+                self.page,
+                "Erro ao carregar logo selecionada.",
+                bgcolor=ft.Colors.RED_400,
             )
-            root.destroy()
-        except Exception:
-            path = None
-
-        if path:
-            try:
-                # preserve extension
-                _, ext = os.path.splitext(path)
-                dst = os.path.join(self.logo_dir, f"company_logo{ext}")
-                shutil.copy(path, dst)
-                self.logo_path = dst
-                self._load_logo_preview()
-            except Exception as err:
-                print("Erro ao copiar logo:", err)
 
     def _load_logo_preview(self):
         self.logo_preview.controls.clear()
         if os.path.exists(self.logo_path):
             try:
-                # carregar imagem em base64 para evitar problemas de URI
                 import base64
 
                 with open(self.logo_path, "rb") as f:
@@ -138,12 +137,14 @@ class ConfiguracoesView:
                     ft.Image(src=data_uri, width=150, height=150)
                 )
             except Exception:
-                self.logo_preview.controls.append(
-                    ft.Text("Logo presente (não renderizável)")
-                )
+                self.logo_preview.controls.append(ft.Text("Logo presente (não renderizável)"))
         else:
             self.logo_preview.controls.append(ft.Text("Nenhum logo carregado"))
-        self.page.update()
+
+        try:
+            self.page.update()
+        except Exception:
+            pass
 
     def _load(self):
         cfg = self.service.obter_config()
@@ -201,7 +202,6 @@ class ConfiguracoesView:
             alertSnackBarMensage(self.page, "Configurações salvas")
         except Exception as err:
             print("Erro ao salvar config:", err)
-        self.page.update()
 
     def _remover_logo(self, e=None):
         try:
@@ -212,4 +212,3 @@ class ConfiguracoesView:
             alertSnackBarMensage(self.page, "Logo removido")
         except Exception as err:
             print("Erro ao remover logo:", err)
-        self.page.update()

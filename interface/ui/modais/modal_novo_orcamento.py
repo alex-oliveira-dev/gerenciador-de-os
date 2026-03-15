@@ -1,4 +1,7 @@
 import flet as ft
+import os
+from backend.utils.pdf_generator import gerar_pdf
+import threading
 import datetime
 import json
 
@@ -14,6 +17,7 @@ class ModalNovoOrcamento:
         self.total_sem_desconto = 0
         self.total_com_desconto = 0
         self.dialog = None
+        self.item_dialog = None
         self._montar_modal()
 
     def _montar_modal(self):
@@ -80,6 +84,9 @@ class ModalNovoOrcamento:
         )
 
     def _abrir_modal_item(self, e):
+        # fecha modal principal antes de abrir o modal de itens
+        self.page.pop_dialog()
+
         self.produto_dropdown = ft.Dropdown(
             label="Produto",
             options=[ft.dropdown.Option(p["nome"]) for p in self.produtos],
@@ -135,12 +142,16 @@ class ModalNovoOrcamento:
         self.produto_dropdown.on_change = atualizar_preco
         self.qtd_field.on_change = atualizar_total_item
         atualizar_preco()
-        if self.item_dialog not in self.page.overlay:
-            self.page.overlay.append(self.item_dialog)
-        self.page.dialog = self.item_dialog
-        self.item_dialog.open = True
         self._atualizar_lista_itens_temp()
-        self.page.update()
+        self.page.show_dialog(self.item_dialog)
+
+    def _fechar_modal_item(self):
+        if self.item_dialog is not None:
+            self.page.pop_dialog()
+
+    def _fechar_modal_principal(self):
+        if self.dialog is not None:
+            self.page.pop_dialog()
 
     def _adicionar_item(self, e):
         nome = self.produto_dropdown.value
@@ -185,11 +196,8 @@ class ModalNovoOrcamento:
         self.page.update()
 
     def _concluir_modal_item(self, e):
-        self.item_dialog.open = False
-        if self.dialog not in self.page.overlay:
-            self.page.overlay.append(self.dialog)
-        self.dialog.open = True
-        self.page.update()
+        self.page.pop_dialog()
+        self.page.show_dialog(self.dialog)
 
     def _atualizar_lista_itens(self):
         self.lista_itens.controls.clear()
@@ -245,84 +253,93 @@ class ModalNovoOrcamento:
         self.page.update()
 
     def _salvar_orcamento(self, e):
-        import os
-        from backend.utils.pdf_generator import gerar_pdf
-
-        # salvar sem overlay/ProgressRing para agilizar interação
-
-        # monta dicionário do orçamento incluindo dados do cliente
-        cliente_nome = self.cliente_dropdown.value
-        cliente_obj = next(
-            (c for c in self.clientes if c.get("nome") == cliente_nome), None
-        )
-        orcamento = {
-            "cliente": cliente_nome,
-            "cliente_nome": cliente_nome,
-            "cliente_telefone": (cliente_obj.get("telefone") if cliente_obj else None),
-            "cliente_email": (cliente_obj.get("email") if cliente_obj else None),
-            "cliente_endereco": (cliente_obj.get("endereco") if cliente_obj else None),
-            "data": self.data_field.value,
-            "itens": self.itens,
-            "mensagem_adicional": (self.mensagem_field.value or ""),
-            "total_sem_desconto": self.total_sem_desconto,
-            "total_com_desconto": self.total_com_desconto,
-            "desconto": self.desconto,
-        }
-        # Salva o orçamento no banco e obtém o id final
-        novo_id = self.salvar_orcamento_callback(orcamento)
-        # Gera PDF e salva na pasta assets usando o id real
-        pdf_dir = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "..", "assets", "orçamentos")
-        )
-        os.makedirs(pdf_dir, exist_ok=True)
-        # define número/ID único do orçamento
-        numero_unico = novo_id or orcamento.get("id") or None
-        if not numero_unico:
-            import time
-
-            numero_unico = f"tmp-{int(time.time())}"
-        orcamento["id"] = numero_unico
-        orcamento["numero"] = numero_unico
-        pdf_id = numero_unico
-        pdf_filename = f"orcamento_{pdf_id}.pdf"
-        pdf_path = os.path.join(pdf_dir, pdf_filename)
+        sucesso = False
         try:
-            gerar_pdf(orcamento, self.itens, pdf_path)
+            # monta dicionário do orçamento incluindo dados do cliente
+            cliente_nome = self.cliente_dropdown.value
+            cliente_obj = next(
+                (c for c in self.clientes if c.get("nome") == cliente_nome), None
+            )
+            orcamento = {
+                "cliente": cliente_nome,
+                "cliente_nome": cliente_nome,
+                "cliente_telefone": (cliente_obj.get("telefone") if cliente_obj else None),
+                "cliente_email": (cliente_obj.get("email") if cliente_obj else None),
+                "cliente_endereco": (cliente_obj.get("endereco") if cliente_obj else None),
+                "data": self.data_field.value,
+                "itens": self.itens,
+                "mensagem_adicional": (self.mensagem_field.value or ""),
+                "total_sem_desconto": self.total_sem_desconto,
+                "total_com_desconto": self.total_com_desconto,
+                "desconto": self.desconto,
+            }
+            # Salva o orçamento no banco e obtém o id final
+            novo_id = self.salvar_orcamento_callback(orcamento)
+            # Gera PDF e salva na pasta assets usando o id real
+            pdf_dir = os.path.abspath(
+                os.path.join(
+                    os.path.dirname(__file__), "..", "..", "assets", "orçamentos"
+                )
+            )
+            os.makedirs(pdf_dir, exist_ok=True)
+            # define número/ID único do orçamento
+            numero_unico = novo_id or orcamento.get("id") or None
+            if not numero_unico:
+                import time
+
+                numero_unico = f"tmp-{int(time.time())}"
+            orcamento["id"] = numero_unico
+            orcamento["numero"] = numero_unico
+            pdf_id = numero_unico
+            pdf_filename = f"orcamento_{pdf_id}.pdf"
+            pdf_path = os.path.join(pdf_dir, pdf_filename)
+            orcamento_pdf = dict(orcamento)
+            itens_pdf = list(self.itens)
+
+            def _gerar_pdf_async():
+                try:
+                    gerar_pdf(orcamento_pdf, itens_pdf, pdf_path)
+                except Exception as err:
+                    print("Erro ao gerar PDF:", err)
+
+            threading.Thread(target=_gerar_pdf_async, daemon=True).start()
+            sucesso = True
         except Exception as err:
-            print("Erro ao gerar PDF:", err)
-        self.dialog.open = False
-        if self.dialog in self.page.overlay:
-            self.page.overlay.remove(self.dialog)
-        # Seleciona a aba de orçamentos (índice 3 ou 4, dependendo da ordem)
-        if hasattr(self.page, "tabs") and self.page.tabs:
-            for idx, tab in enumerate(self.page.tabs.tabs):
-                if getattr(tab, "text", "").upper() == "ORÇAMENTOS":
-                    self.page.tabs.selected_index = idx
-                    break
-        elif hasattr(self.page, "controls"):
-            # Busca Tabs no layout
-            for c in self.page.controls:
-                if isinstance(c, ft.Tabs):
-                    for idx, tab in enumerate(c.tabs):
-                        if getattr(tab, "text", "").upper() == "ORÇAMENTOS":
-                            c.selected_index = idx
-                            break
+            print("Erro ao salvar orçamento:", err)
+        finally:
+            self.dialog.open = False
+            self.page.pop_dialog()
+
+        if sucesso:
+            # Seleciona a aba de orçamentos (índice 3 ou 4, dependendo da ordem)
+            if hasattr(self.page, "tabs") and self.page.tabs:
+                for idx, tab in enumerate(self.page.tabs.tabs):
+                    if getattr(tab, "text", "").upper() == "ORÇAMENTOS":
+                        self.page.tabs.selected_index = idx
+                        break
+            elif hasattr(self.page, "controls"):
+                # Busca Tabs no layout
+                for c in self.page.controls:
+                    if isinstance(c, ft.Tabs):
+                        for idx, tab in enumerate(c.tabs):
+                            if getattr(tab, "text", "").upper() == "ORÇAMENTOS":
+                                c.selected_index = idx
+                                break
         self.page.update()
-        # Não chama _cancelar_modal_item aqui, pois o item_dialog já foi fechado/removido
 
     def _cancelar_modal(self, e):
-        self.dialog.open = False
-        self.page.update()
+        self.page.pop_dialog()
 
     def _cancelar_modal_item(self, e):
-        self.item_dialog.open = False
-        self.page.update()
+        self.page.pop_dialog()
+        self.page.show_dialog(self.dialog)
 
     def abrir(self):
-        print("abriu modal novo orçamento")
-        if self.dialog not in self.page.overlay:
-            self.page.overlay.append(self.dialog)
-        self.page.dialog = None  # Garante que não há outro dialog aberto
-        self.page.dialog = self.dialog
-        self.dialog.open = True
-        self.page.update()
+        self.itens = []
+        self.lista_itens.controls.clear()
+        self._atualizar_totais()
+        self.cliente_dropdown.value = None
+        self.data_field.value = datetime.date.today().strftime("%d/%m/%Y")
+        self.mensagem_field.value = ""
+        self.desconto_field.value = "0"
+        self.page.show_dialog(self.dialog)

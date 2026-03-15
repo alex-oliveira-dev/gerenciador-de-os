@@ -33,27 +33,29 @@ class FuncionarioView:
             border_radius=12,
             padding=24,
         )
-        self.atualizar_funcionarios()
+        # carregar funcionários em background para não bloquear UI
+        try:
+            page.run_thread(self.atualizar_funcionarios)
+        except Exception:
+            import threading
 
-    def atualizar_funcionarios(self):
+            threading.Thread(target=self.atualizar_funcionarios, daemon=True).start()
+
+    def atualizar_funcionarios(self, update_page=True):
         funcionarios = funcionario_service.listar_funcionarios()
-        self.tabela.atualizar(funcionarios)
-        self.page.update()
+        self.tabela.atualizar(funcionarios, update_page=update_page)
 
     def adicionar_funcionario(self, funcionario):
         funcionario_service.adicionar_funcionario(funcionario)
-        self.atualizar_funcionarios()
-        self.page.update()
+        self.atualizar_funcionarios(update_page=True)
 
     def editar_funcionario(self, funcionario):
         self.modal.abrir_modal(funcionario)
 
     def salvar_edicao(self, funcionario):
         funcionario_service.editar_funcionario(funcionario)
-        self.atualizar_funcionarios()
-        self.page.update()
+        self.atualizar_funcionarios(update_page=True)
 
     def excluir_funcionario(self, funcionario):
         funcionario_service.excluir_funcionario(funcionario["id"])
-        self.atualizar_funcionarios()
-        self.page.update()
+        self.atualizar_funcionarios(update_page=True)

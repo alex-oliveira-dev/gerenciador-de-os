@@ -23,8 +23,19 @@ def registrar_venda(cliente: str, forma_pagamento: str, itens: List[Dict]):
 def listar_vendas():
     conn = sqlite3.connect("sistema.db")
     cursor = conn.cursor()
+    # Retorna metadados agregados para evitar N+1 queries na camada de UI
     cursor.execute(
-        "SELECT id, cliente, forma_pagamento, data FROM vendas ORDER BY data DESC"
+        """
+        SELECT
+            v.id,
+            v.cliente,
+            v.forma_pagamento,
+            v.data,
+            (SELECT SUM(quantidade) FROM itens_venda WHERE venda_id = v.id) as total_itens,
+            (SELECT SUM(quantidade * COALESCE((SELECT preco_venda FROM estoque WHERE nome = itens_venda.produto LIMIT 1), 0)) FROM itens_venda WHERE venda_id = v.id) as total_valor
+        FROM vendas v
+        ORDER BY v.data DESC
+        """
     )
     vendas = cursor.fetchall()
     conn.close()
