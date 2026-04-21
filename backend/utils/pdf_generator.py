@@ -177,10 +177,14 @@ class MeuPDF(FPDF):
         try:
             left_margin = 10
             right_margin = 10
-            logo_w = 36
             spacing = 8
 
+            # Fixed logo box size (mm) and position
+            LOGO_BOX_W_MM = 36
+            LOGO_BOX_H_MM = 20
             # posição do logo (à direita)
+            logo_w = LOGO_BOX_W_MM
+            logo_h = LOGO_BOX_H_MM
             logo_x = self.w - right_margin - logo_w
             logo_y = 10
 
@@ -217,10 +221,9 @@ class MeuPDF(FPDF):
                 candidates = [
                     p for p in candidates if p and not (p in seen or seen.add(p))
                 ]
-
-                # não inserir imagem no header (evita duplicação) — apenas registre candidatos
+                # Use fixed header logo box; do not compute dynamic size here
                 inserted = False
-                # dedupe já feito acima; armazena candidatos para uso posterior
+                # store candidates for later use
                 try:
                     self._logo_candidates = candidates
                 except Exception:
@@ -232,6 +235,7 @@ class MeuPDF(FPDF):
             try:
                 self._header_logo_inserted = bool(inserted)
                 self._header_logo_size = logo_w
+                self._header_logo_height = logo_h
             except Exception:
                 pass
 
@@ -379,7 +383,10 @@ def gerar_pdf(orcamento: dict, itens: list, caminho_saida: str, logo_path: str =
 
             # tenta aproveitar tamanho definido no header para manter coerência
             header_logo_size = getattr(pdf, "_header_logo_size", None)
-            logo_w = header_logo_size if header_logo_size else 50
+            header_logo_height = getattr(pdf, "_header_logo_height", None)
+            # use header values if present, otherwise defaults
+            logo_w = float(header_logo_size) if header_logo_size else 36.0
+            logo_h = float(header_logo_height) if header_logo_height else 36.0
             spacing = 8
             # tabela à esquerda, logo à direita
             table_x = left_margin
@@ -416,66 +423,72 @@ def gerar_pdf(orcamento: dict, itens: list, caminho_saida: str, logo_path: str =
             if logo_cfg:
                 candidates.append(logo_cfg)
 
-            # inserir logo ao lado da tabela, escalando para a altura da tabela de campos
+            # inserir logo ao lado da tabela usando tamanho e posição fixos
             logo_x = left_margin + table_w + spacing
             logo_y = table_y
             logo_inserted_fp = False
             # prefere candidatos coletados no header (se houver)
             candidates_final = getattr(pdf, "_logo_candidates", None) or candidates
-            # altura desejada: total de linhas da tabela (com um pequeno padding)
-            table_h = row_h * len(
-                [
-                    f
-                    for f in [
-                        ("Nome", (cfg.get("nome") or "")),
-                        ("Endereço", (cfg.get("endereco") or "")),
-                        ("CEP", (cfg.get("cep") or "")),
-                        ("Estado", (cfg.get("estado") or "")),
-                        ("Telefone", (cfg.get("telefone") or "")),
-                        ("CPF/CNPJ", (cfg.get("cpf_cnpj") or "")),
-                    ]
-                ]
-            )
-            logo_h = table_h * 0.95
+
             try:
                 for cand in candidates_final:
                     try:
-                        cand_abs = (
-                            cand if os.path.isabs(cand) else os.path.abspath(cand)
-                        )
+                        cand_abs = cand if os.path.isabs(cand) else os.path.abspath(cand)
                     except Exception:
                         cand_abs = cand
                     if not cand_abs or not os.path.exists(cand_abs):
                         continue
-                    try:
-                        pdf.image(cand_abs, x=logo_x, y=logo_y, h=logo_h)
-                        logo_inserted_fp = True
-                        break
-                    except Exception as img_e:
-                        try:
-                            from PIL import Image
 
-                            im = Image.open(cand_abs)
+                    # Try to produce a fixed-size PNG (preserve aspect ratio, center on white background)
+                    try:
+                        from PIL import Image as PILImage
+
+                        dpi = 96
+                        px_w = int((logo_w / 25.4) * dpi)
+                        px_h = int((logo_h / 25.4) * dpi)
+
+                        with PILImage.open(cand_abs) as im:
+                            # convert and preserve aspect ratio
                             if im.mode in ("RGBA", "LA"):
-                                bg = Image.new("RGB", im.size, (255, 255, 255))
-                                bg.paste(im, mask=im.split()[-1])
-                                im = bg
+                                im = im.convert("RGBA")
+                            else:
+                                im = im.convert("RGB")
+                            im.thumbnail((px_w, px_h), PILImage.LANCZOS)
+
+                            # create background and paste centered
+                            bg = PILImage.new("RGB", (px_w, px_h), (255, 255, 255))
+                            offset = ((px_w - im.width) // 2, (px_h - im.height) // 2)
+                            try:
+                                if im.mode == "RGBA":
+                                    bg.paste(im.convert("RGBA"), offset, im.split()[-1])
+                                else:
+                                    bg.paste(im, offset)
+                            except Exception:
+                                bg.paste(im, offset)
+
                             tmp_logo_fd, tmp_logo_path = tempfile.mkstemp(suffix=".png")
                             os.close(tmp_logo_fd)
-                            im.save(tmp_logo_path, format="PNG")
+                            bg.save(tmp_logo_path, format="PNG")
+
+                        try:
+                            pdf.image(tmp_logo_path, x=logo_x, y=logo_y, w=logo_w, h=logo_h)
+                            logo_inserted_fp = True
                             try:
-                                pdf.image(tmp_logo_path, x=logo_x, y=logo_y, h=logo_h)
-                                logo_inserted_fp = True
-                                try:
-                                    os.remove(tmp_logo_path)
-                                except Exception:
-                                    pass
-                                break
+                                os.remove(tmp_logo_path)
                             except Exception:
-                                try:
-                                    os.remove(tmp_logo_path)
-                                except Exception:
-                                    pass
+                                pass
+                            break
+                        except Exception:
+                            try:
+                                os.remove(tmp_logo_path)
+                            except Exception:
+                                pass
+                    except Exception:
+                        # fallback: attempt to insert original image forcing box size
+                        try:
+                            pdf.image(cand_abs, x=logo_x, y=logo_y, w=logo_w, h=logo_h)
+                            logo_inserted_fp = True
+                            break
                         except Exception:
                             pass
             except Exception:
@@ -498,6 +511,8 @@ def gerar_pdf(orcamento: dict, itens: list, caminho_saida: str, logo_path: str =
                 pass
 
             fill = True
+            # altura original da tabela com os campos definidos
+            table_h = row_h * len(fields)
             for label, value in fields:
                 pdf.set_font("Arial", "B", 10)
                 (
@@ -512,11 +527,36 @@ def gerar_pdf(orcamento: dict, itens: list, caminho_saida: str, logo_path: str =
                 pdf.ln()
                 fill = not fill
 
-            # ajustar cursor para abaixo do maior entre logo e tabela
-            end_table_y = pdf.get_y()
-            logo_bottom = table_y + (logo_h if logo_inserted_fp else (logo_w * 0.6))
-            next_y = max(end_table_y, logo_bottom) + 6
-            pdf.set_y(next_y)
+            # Se a logo foi inserida e é mais alta que a tabela, desenhe linhas extras
+            try:
+                end_table_y = pdf.get_y()
+                if logo_inserted_fp and logo_h and logo_h > table_h:
+                    extra_h = logo_h - table_h
+                    # número de linhas extras necessárias
+                    extra_rows = int((extra_h + row_h - 1) // row_h)
+                    for i in range(extra_rows):
+                        pdf.set_font("Arial", "B", 10)
+                        (
+                            pdf.set_fill_color(245, 245, 245)
+                            if fill
+                            else pdf.set_fill_color(255, 255, 255)
+                        )
+                        pdf.cell(label_w, row_h, "", border=1, align="L", fill=True)
+                        pdf.set_font("Arial", "", 10)
+                        pdf.cell(value_w, row_h, "", border=1, align="L", fill=True)
+                        pdf.ln()
+                        fill = not fill
+                    end_table_y = pdf.get_y()
+
+                logo_bottom = table_y + (logo_h if logo_inserted_fp else (logo_w * 0.6))
+                next_y = max(end_table_y, logo_bottom) + 6
+                pdf.set_y(next_y)
+            except Exception:
+                # fallback simples
+                end_table_y = pdf.get_y()
+                logo_bottom = table_y + (logo_h if logo_inserted_fp else (logo_w * 0.6))
+                next_y = max(end_table_y, logo_bottom) + 6
+                pdf.set_y(next_y)
     except Exception:
         pass
 

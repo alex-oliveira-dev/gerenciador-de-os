@@ -78,6 +78,7 @@ class OrcamentoView:
             label="Selecione o cliente",
             options=[ft.dropdown.Option(nome) for nome in clientes.keys()],
             width=300,
+            menu_height=200,
         )
         btn_filtrar = ft.Button("Mostrar Orçamentos", disabled=True)
         btn_todos = ft.OutlinedButton(

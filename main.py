@@ -284,4 +284,5 @@ async def main(page: ft.Page):
     App(page)
 
 
+
 ft.app(target=main, assets_dir="assets")

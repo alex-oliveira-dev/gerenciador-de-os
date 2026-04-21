@@ -17,11 +17,13 @@ class VendasView:
         self.cliente_dropdown = ft.Dropdown(
             label="Cliente",
             width=300,
+            menu_height=200,
             options=[],
         )
         self.produto_dropdown = ft.Dropdown(
             label="Produto",
             width=200,
+            menu_height=200,
             options=[],
         )
         self.quantidade_input = ft.TextField(label="Quantidade", width=100, value="1")
@@ -87,6 +89,7 @@ class VendasView:
         self.forma_pagamento_dropdown = ft.Dropdown(
             label="Forma de Pagamento",
             width=200,
+            menu_height=200,
             options=[
                 ft.dropdown.Option("Dinheiro"),
                 ft.dropdown.Option("Cartão de Crédito"),

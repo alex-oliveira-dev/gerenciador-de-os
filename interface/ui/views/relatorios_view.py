@@ -15,13 +15,14 @@ class RelatoriosView:
         self.filter_type_dropdown = ft.Dropdown(
             label="Tipo de Relatório",
             options=[
-                ft.dropdown.Option("Todos"),
+                # ft.dropdown.Option("Todos"),  pode voltar em uma atualização de filtros mais completa, mas por ora deixa só os tipos específicos
                 ft.dropdown.Option("Financeiro"),
                 ft.dropdown.Option("Estoque"),
                 ft.dropdown.Option("Vendas por Produto"),
             ],
             width=220,
-            value="Todos",
+            menu_height=200,
+            value="Financeiro",
         )
         self.filter_period_field = ft.TextField(
             label="Período (AAAA-MM)", width=140, hint_text="Opcional"
@@ -51,127 +52,127 @@ class RelatoriosView:
                                     color=ft.Colors.BLUE_900,
                                 ),
 
-                                ft.Container(
-                                    content=ft.Row(
-                                        [
-                                            ft.Container(
-                                                content=ft.ElevatedButton(
-                                                    content=ft.Column(
-                                                        [   
-                                                            ft.Row(
-                                                                [
-                                                                    ft.Icon(ft.Icons.ATTACH_MONEY, size=32),
-                                                                    ft.Text(
-                                                                    "Relatório Financeiro",
-                                                                    size=16,
-                                                                    weight=ft.FontWeight.BOLD,
-                                                                    ),
-                                                                ]
-                                                            )
+                                # ft.Container(
+                                #     content=ft.Row(
+                                #         [
+                                #             ft.Container(
+                                #                 content=ft.ElevatedButton(
+                                #                     content=ft.Column(
+                                #                         [   
+                                #                             ft.Row(
+                                #                                 [
+                                #                                     ft.Icon(ft.Icons.ATTACH_MONEY, size=32),
+                                #                                     ft.Text(
+                                #                                     "Relatório Financeiro",
+                                #                                     size=16,
+                                #                                     weight=ft.FontWeight.BOLD,
+                                #                                     ),
+                                #                                 ]
+                                #                             )
                                                             
-                                                        ],
-                                                        spacing=8,
-                                                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                                    ),
-                                                    bgcolor=ft.Colors.GREEN_600,
-                                                    color=ft.Colors.WHITE,
-                                                    on_click=self.gerar_financeiro,
-                                                    style=ft.ButtonStyle(
-                                                        shape=ft.RoundedRectangleBorder(radius=12),
-                                                        padding=20,
-                                                    ),
-                                                    height=55,
-                                                    width=250,
-                                                ),
-                                                shadow=ft.BoxShadow(
-                                                    spread_radius=1,
-                                                    blur_radius=8,
-                                                    color=ft.Colors.with_opacity(
-                                                        0.3, ft.Colors.GREEN_600
-                                                    ),
-                                                    offset=ft.Offset(0, 4),
-                                                ),
-                                            ),
-                                            ft.Container(
-                                                content=ft.ElevatedButton(
-                                                    content=ft.Column(
-                                                        [   
-                                                            ft.Row(
-                                                                [
-                                                                    ft.Icon(ft.Icons.INVENTORY, size=32),
-                                                                    ft.Text(
-                                                                        "Relatório de Estoque",
-                                                                        size=16,
-                                                                        weight=ft.FontWeight.BOLD,
-                                                                    ),
-                                                                ]
-                                                            )
-                                                        ],
-                                                        spacing=8,
-                                                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                                    ),
-                                                    bgcolor=ft.Colors.ORANGE_600,
-                                                    color=ft.Colors.WHITE,
-                                                    on_click=self.gerar_estoque,
-                                                    style=ft.ButtonStyle(
-                                                        shape=ft.RoundedRectangleBorder(radius=12),
-                                                        padding=20,
-                                                    ),
-                                                    height=55,
-                                                    width=250,
-                                                ),
-                                                shadow=ft.BoxShadow(
-                                                    spread_radius=1,
-                                                    blur_radius=8,
-                                                    color=ft.Colors.with_opacity(
-                                                        0.3, ft.Colors.ORANGE_600
-                                                    ),
-                                                    offset=ft.Offset(0, 4),
-                                                ),
-                                            ),
-                                            ft.Container(
-                                                content=ft.ElevatedButton(
-                                                    content=ft.Column(
-                                                        [   
-                                                            ft.Row(
-                                                                [
-                                                                    ft.Icon(ft.Icons.BAR_CHART, size=32),
-                                                                    ft.Text(
-                                                                        "Vendas por Produto",
-                                                                        size=16,
-                                                                        weight=ft.FontWeight.BOLD,
-                                                                    ),
-                                                                ])
+                                #                         ],
+                                #                         spacing=8,
+                                #                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                #                     ),
+                                #                     bgcolor=ft.Colors.GREEN_600,
+                                #                     color=ft.Colors.WHITE,
+                                #                     on_click=self.gerar_financeiro,
+                                #                     style=ft.ButtonStyle(
+                                #                         shape=ft.RoundedRectangleBorder(radius=12),
+                                #                         padding=20,
+                                #                     ),
+                                #                     height=55,
+                                #                     width=250,
+                                #                 ),
+                                #                 shadow=ft.BoxShadow(
+                                #                     spread_radius=1,
+                                #                     blur_radius=8,
+                                #                     color=ft.Colors.with_opacity(
+                                #                         0.3, ft.Colors.GREEN_600
+                                #                     ),
+                                #                     offset=ft.Offset(0, 4),
+                                #                 ),
+                                #             ),
+                                #             ft.Container(
+                                #                 content=ft.ElevatedButton(
+                                #                     content=ft.Column(
+                                #                         [   
+                                #                             ft.Row(
+                                #                                 [
+                                #                                     ft.Icon(ft.Icons.INVENTORY, size=32),
+                                #                                     ft.Text(
+                                #                                         "Relatório de Estoque",
+                                #                                         size=16,
+                                #                                         weight=ft.FontWeight.BOLD,
+                                #                                     ),
+                                #                                 ]
+                                #                             )
+                                #                         ],
+                                #                         spacing=8,
+                                #                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                #                     ),
+                                #                     bgcolor=ft.Colors.ORANGE_600,
+                                #                     color=ft.Colors.WHITE,
+                                #                     on_click=self.gerar_estoque,
+                                #                     style=ft.ButtonStyle(
+                                #                         shape=ft.RoundedRectangleBorder(radius=12),
+                                #                         padding=20,
+                                #                     ),
+                                #                     height=55,
+                                #                     width=250,
+                                #                 ),
+                                #                 shadow=ft.BoxShadow(
+                                #                     spread_radius=1,
+                                #                     blur_radius=8,
+                                #                     color=ft.Colors.with_opacity(
+                                #                         0.3, ft.Colors.ORANGE_600
+                                #                     ),
+                                #                     offset=ft.Offset(0, 4),
+                                #                 ),
+                                #             ),
+                                #             ft.Container(
+                                #                 content=ft.ElevatedButton(
+                                #                     content=ft.Column(
+                                #                         [   
+                                #                             ft.Row(
+                                #                                 [
+                                #                                     ft.Icon(ft.Icons.BAR_CHART, size=32),
+                                #                                     ft.Text(
+                                #                                         "Vendas por Produto",
+                                #                                         size=16,
+                                #                                         weight=ft.FontWeight.BOLD,
+                                #                                     ),
+                                #                                 ])
                                                             
-                                                        ],
-                                                        spacing=8,
-                                                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                                    ),
-                                                    bgcolor=ft.Colors.BLUE_600,
-                                                    color=ft.Colors.WHITE,
-                                                    on_click=self.gerar_vendas_produto,
-                                                    style=ft.ButtonStyle(
-                                                        shape=ft.RoundedRectangleBorder(radius=12),
-                                                        padding=20,
-                                                    ),
-                                                    height=55,
-                                                    width=250,
-                                                ),
-                                                shadow=ft.BoxShadow(
-                                                    spread_radius=1,
-                                                    blur_radius=8,
-                                                    color=ft.Colors.with_opacity(
-                                                        0.3, ft.Colors.BLUE_600
-                                                    ),
-                                                    offset=ft.Offset(0, 4),
-                                                ),
-                                            ),
-                                        ],
-                                        spacing=20,
-                                        wrap=True,
-                                    ),
-                                    padding=ft.padding.only(bottom=20),
-                                ),
+                                #                         ],
+                                #                         spacing=8,
+                                #                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                #                     ),
+                                #                     bgcolor=ft.Colors.BLUE_600,
+                                #                     color=ft.Colors.WHITE,
+                                #                     on_click=self.gerar_vendas_produto,
+                                #                     style=ft.ButtonStyle(
+                                #                         shape=ft.RoundedRectangleBorder(radius=12),
+                                #                         padding=20,
+                                #                     ),
+                                #                     height=55,
+                                #                     width=250,
+                                #                 ),
+                                #                 shadow=ft.BoxShadow(
+                                #                     spread_radius=1,
+                                #                     blur_radius=8,
+                                #                     color=ft.Colors.with_opacity(
+                                #                         0.3, ft.Colors.BLUE_600
+                                #                     ),
+                                #                     offset=ft.Offset(0, 4),
+                                #                 ),
+                                #             ),
+                                #         ],
+                                #         spacing=20,
+                                #         wrap=True,
+                                #     ),
+                                #     padding=ft.padding.only(bottom=20),
+                                # ),
                             ],
                             spacing=12,
                         ),

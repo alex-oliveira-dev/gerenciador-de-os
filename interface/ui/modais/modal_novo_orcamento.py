@@ -25,6 +25,7 @@ class ModalNovoOrcamento:
             label="Cliente",
             options=[ft.dropdown.Option(c["nome"]) for c in self.clientes],
             width=300,
+            menu_height=200,
         )
         self.data_field = ft.TextField(
             label="Data", value=datetime.date.today().strftime("%d/%m/%Y"), width=150
@@ -91,6 +92,7 @@ class ModalNovoOrcamento:
             label="Produto",
             options=[ft.dropdown.Option(p["nome"]) for p in self.produtos],
             width=250,
+            menu_height=200,
         )
         self.qtd_field = ft.TextField(
             label="Quantidade", width=100, keyboard_type=ft.KeyboardType.NUMBER
